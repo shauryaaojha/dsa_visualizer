@@ -11,13 +11,15 @@
 
 export type TopicStatus = "available" | "soon";
 
-/** A leaf = an actual visualizer page. */
+/** A leaf = an actual visualizer page, OR (if it has `children`) a sub-hub. */
 export interface LeafMeta {
   slug: string;
   title: string;
   blurb: string;
   icon: string;
   complexity?: { time: string; space: string };
+  /** If present, this card is an intermediate hub listing these child leaves. */
+  children?: LeafMeta[];
 }
 
 /** A category groups leaves (e.g. arrays/searching). */
@@ -115,6 +117,85 @@ const arrays: SectionMeta = {
   ],
 };
 
+// --- Linked List (fully built) ---------------------------------------------
+
+/** Insertion / deletion groups are identical across list kinds (routes differ
+ *  by the kind folder, derived from the path in the hub pages). */
+const insertionGroup: LeafMeta = {
+  slug: "insertion",
+  title: "Insertion",
+  blurb: "Add a node at the beginning, end, or a given position.",
+  icon: "add_box",
+  children: [
+    { slug: "insert-begin", title: "Insert at Begin", blurb: "Prepend a node — O(1).", icon: "first_page", complexity: { time: "O(1)", space: "O(1)" } },
+    { slug: "insert-end", title: "Insert at End", blurb: "Append a node at the tail.", icon: "last_page", complexity: { time: "O(n)", space: "O(1)" } },
+    { slug: "insert-position", title: "Insert at Position", blurb: "Splice a node at an index.", icon: "add_box", complexity: { time: "O(n)", space: "O(1)" } },
+  ],
+};
+
+const deletionGroup: LeafMeta = {
+  slug: "deletion",
+  title: "Deletion",
+  blurb: "Remove a node from the beginning, end, or a given position.",
+  icon: "delete",
+  children: [
+    { slug: "delete-begin", title: "Delete at Begin", blurb: "Remove the head — O(1).", icon: "first_page", complexity: { time: "O(1)", space: "O(1)" } },
+    { slug: "delete-end", title: "Delete at End", blurb: "Remove the tail node.", icon: "last_page", complexity: { time: "O(n)", space: "O(1)" } },
+    { slug: "delete-position", title: "Delete at Position", blurb: "Unlink the node at an index.", icon: "delete", complexity: { time: "O(n)", space: "O(1)" } },
+  ],
+};
+
+const listTypeLeaves = (): LeafMeta[] => [
+  { slug: "traversal", title: "Traversal", blurb: "Walk head → tail following next.", icon: "linear_scale", complexity: { time: "O(n)", space: "O(1)" } },
+  { ...insertionGroup },
+  { ...deletionGroup },
+];
+
+const linkedList: SectionMeta = {
+  slug: "linked-list",
+  title: "Linked List",
+  blurb: "Nodes linked by pointers — singly, doubly, circular.",
+  icon: "link",
+  status: "available",
+  categories: [
+    {
+      slug: "singly-linked-list",
+      title: "Singly Linked List",
+      blurb: "Each node points to the next; one-way traversal.",
+      icon: "east",
+      status: "available",
+      leaves: listTypeLeaves(),
+    },
+    {
+      slug: "doubly-linked-list",
+      title: "Doubly Linked List",
+      blurb: "Nodes carry next and prev — walk both directions.",
+      icon: "sync_alt",
+      status: "available",
+      leaves: listTypeLeaves(),
+    },
+    {
+      slug: "circular-linked-list",
+      title: "Circular Linked List",
+      blurb: "The tail links back to the head — no NULL end.",
+      icon: "refresh",
+      status: "available",
+      leaves: listTypeLeaves(),
+    },
+    {
+      slug: "applications",
+      title: "Applications",
+      blurb: "Classic problems modelled with linked lists.",
+      icon: "extension",
+      status: "available",
+      leaves: [
+        { slug: "josephus-problem", title: "Josephus Problem", blurb: "Eliminate every k-th node around a circle.", icon: "casino", complexity: { time: "O(n·k)", space: "O(n)" } },
+        { slug: "polynomial-representation", title: "Polynomial Representation", blurb: "Store terms (coef, exp) as list nodes.", icon: "functions", complexity: { time: "O(t)", space: "O(t)" } },
+      ],
+    },
+  ],
+};
+
 // --- Other sections (folders exist; pages built later) ---------------------
 
 const soon = (
@@ -127,7 +208,7 @@ const soon = (
 export const SECTIONS: SectionMeta[] = [
   soon("foundations", "Foundations", "school", "Asymptotics, complexity classes and the math behind analysis."),
   arrays,
-  soon("linked-list", "Linked List", "link", "Nodes linked by pointers — singly, doubly, circular."),
+  linkedList,
   soon("stacks", "Stacks", "stacked_bar_chart", "LIFO discipline and its classic applications."),
   soon("queues", "Queues", "queue", "FIFO, circular, deque and priority variants."),
   soon("trees", "Trees", "account_tree", "Binary, BST, AVL, heaps and tries."),

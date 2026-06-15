@@ -176,3 +176,77 @@ export interface TreeProgram {
 }
 
 export type TreeOperationId = "mergeSort" | "quickSort" | "binarySearch";
+
+// ---------------------------------------------------------------------------
+// Linked list visualization
+//
+// A linked list is nodes connected by pointers (arrows). Unlike the array
+// canvas (contiguous cells) this is its own primitive: boxes wired by next
+// (and prev, for doubly) pointers, with floating head/tail/curr/prev cursors,
+// and arrow re-wiring animated on every insert/delete. Stable node ids let
+// framer-motion slide nodes instead of snapping.
+// ---------------------------------------------------------------------------
+
+export type LLKind = "singly" | "doubly" | "circular";
+
+export type LLNodeState =
+  | "idle"
+  | "active" // the cursor is on this node
+  | "visited" // already walked past
+  | "new" // freshly inserted
+  | "removing" // about to be unlinked
+  | "target" // candidate during search
+  | "found"; // search/elimination hit
+
+export interface LLNode {
+  id: string;
+  value: number;
+  /** Fake memory address shown in the node (e.g. "AA") so the next-cell is legible. */
+  addr: string;
+  /** id of the next node, or null for the tail (circular wraps to head id). */
+  next: string | null;
+  /** id of the previous node — doubly only. */
+  prev?: string | null;
+  state: LLNodeState;
+  /** Optional display override (e.g. polynomial term "3x^2"). */
+  label?: string;
+}
+
+/** A named cursor floating above a node (head, tail, curr, prev, …). */
+export interface LLPointer {
+  label: string;
+  /** id of the node it points at, or null (e.g. head = null on empty list). */
+  nodeId: string | null;
+  color?: string;
+}
+
+export interface LLStep {
+  /** Nodes in head→tail visual order. */
+  nodes: LLNode[];
+  headId: string | null;
+  tailId?: string | null;
+  pointers: LLPointer[];
+  description: string;
+  codeLines?: number[];
+}
+
+export interface LLProgram {
+  steps: LLStep[];
+  complexity: Complexity;
+  pseudocode: string[];
+  title: string;
+  /** Drives prev-arrows (doubly) and the tail→head back-edge (circular). */
+  kind: LLKind;
+}
+
+export type LLOperationId =
+  | "traverse"
+  | "search"
+  | "insertBegin"
+  | "insertEnd"
+  | "insertPosition"
+  | "deleteBegin"
+  | "deleteEnd"
+  | "deletePosition"
+  | "josephus"
+  | "polynomial";
