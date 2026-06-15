@@ -18,7 +18,7 @@ export function MatrixSidebar() {
   const clamp = (n: number) => Math.max(1, Math.min(6, n || 1));
 
   return (
-    <aside className="z-40 hidden w-72 shrink-0 flex-col border-r border-outline-variant bg-surface-container-low/80 backdrop-blur-xl md:flex overflow-y-auto scroll-thin">
+    <aside className="z-40 flex h-full w-72 shrink-0 flex-col border-r border-outline-variant bg-surface-container-low/95 backdrop-blur-xl overflow-y-auto scroll-thin md:bg-surface-container-low/80">
       <div className="flex flex-1 flex-col gap-md p-md">
         <div className="flex items-center gap-2 border-b border-outline-variant pb-md">
           <Icon name="grid_on" className="text-[16px] text-primary" />

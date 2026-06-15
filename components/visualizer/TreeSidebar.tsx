@@ -8,9 +8,14 @@ import { QuickOpTabs } from "@/components/layout/QuickOpTabs";
 /** Control rail for divide & conquer (recursion-tree) visualizers. */
 export function TreeSidebar() {
   const values = useTreeStore((s) => s.values);
+  const operation = useTreeStore((s) => s.operation);
+  const target = useTreeStore((s) => s.target);
   const setValues = useTreeStore((s) => s.setValues);
+  const setTarget = useTreeStore((s) => s.setTarget);
   const randomize = useTreeStore((s) => s.randomize);
   const run = useTreeStore((s) => s.run);
+
+  const isSearch = operation === "binarySearch";
 
   const [text, setText] = useState(values.join(", "));
   const editingRef = useRef(false);
@@ -29,11 +34,13 @@ export function TreeSidebar() {
   }
 
   return (
-    <aside className="z-40 hidden w-72 shrink-0 flex-col border-r border-outline-variant bg-surface-container-low/80 backdrop-blur-xl md:flex overflow-y-auto scroll-thin">
+    <aside className="z-40 flex h-full w-72 shrink-0 flex-col border-r border-outline-variant bg-surface-container-low/95 backdrop-blur-xl overflow-y-auto scroll-thin md:bg-surface-container-low/80">
       <div className="flex flex-1 flex-col gap-md p-md">
         <div className="flex items-center gap-2 border-b border-outline-variant pb-md">
-          <Icon name="account_tree" className="text-[16px] text-primary" />
-          <h2 className="font-label-caps text-label-caps text-primary">Divide &amp; Conquer</h2>
+          <Icon name={isSearch ? "manage_search" : "account_tree"} className="text-[16px] text-primary" />
+          <h2 className="font-label-caps text-label-caps text-primary">
+            {isSearch ? "Binary Search" : "Divide & Conquer"}
+          </h2>
         </div>
 
         <div>
@@ -59,7 +66,24 @@ export function TreeSidebar() {
               <Icon name="shuffle" className="text-[18px]" />
             </button>
           </div>
+          {isSearch && (
+            <p className="mt-1 font-body-sm text-[10px] text-on-surface-variant/60">
+              Auto-sorted before searching.
+            </p>
+          )}
         </div>
+
+        {isSearch && (
+          <div>
+            <label className="mb-1 block font-label-caps text-[10px] text-on-surface-variant">TARGET</label>
+            <input
+              type="number"
+              value={target}
+              onChange={(e) => setTarget(parseInt(e.target.value, 10) || 0)}
+              className="w-full border border-outline-variant bg-surface-container-lowest px-2 py-1.5 font-mono text-body-sm text-on-surface outline-none focus:border-primary"
+            />
+          </div>
+        )}
 
         <button
           onClick={() => {
@@ -75,12 +99,21 @@ export function TreeSidebar() {
           <p className="mb-1 flex items-center gap-1.5 font-label-caps text-[10px] text-on-surface-variant">
             <Icon name="account_tree" className="text-[14px]" /> How to read it
           </p>
-          <p className="font-body-sm text-[11px] leading-relaxed text-on-surface-variant/70">
-            The array splits into left &amp; right subarrays down the tree, then
-            combines back up. <span className="text-amber">Amber</span> = dividing,{" "}
-            <span className="text-coral">coral</span> = working,{" "}
-            <span className="text-mint">mint</span> = sorted.
-          </p>
+          {isSearch ? (
+            <p className="font-body-sm text-[11px] leading-relaxed text-on-surface-variant/70">
+              Each level checks the middle element, then discards one half. The{" "}
+              <span className="text-mint">mint</span> branch is eliminated;{" "}
+              <span className="text-coral">coral</span> is the range still in play
+              until the target is <span className="text-mint">found</span>.
+            </p>
+          ) : (
+            <p className="font-body-sm text-[11px] leading-relaxed text-on-surface-variant/70">
+              The array splits into left &amp; right subarrays down the tree, then
+              combines back up. <span className="text-amber">Amber</span> = dividing,{" "}
+              <span className="text-coral">coral</span> = working,{" "}
+              <span className="text-mint">mint</span> = sorted.
+            </p>
+          )}
         </div>
 
         <div className="border-t border-outline-variant pt-md">

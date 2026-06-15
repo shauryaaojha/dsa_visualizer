@@ -34,6 +34,7 @@ interface TreeState {
   toStart: () => void;
   toEnd: () => void;
   cycleSpeed: () => void;
+  setSpeed: (speed: number) => void;
 }
 
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -138,6 +139,10 @@ export const useTreeStore = create<TreeState>((set, get) => {
       const idx = SPEED_OPTIONS.indexOf(get().speed);
       const next = SPEED_OPTIONS[(idx + 1) % SPEED_OPTIONS.length];
       set({ speed: next });
+      if (get().isPlaying) scheduleTick();
+    },
+    setSpeed: (speed) => {
+      set({ speed: speed as Speed });
       if (get().isPlaying) scheduleTick();
     },
   };

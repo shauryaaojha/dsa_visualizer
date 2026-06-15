@@ -64,6 +64,7 @@ interface VisualizerState {
   toStart: () => void;
   toEnd: () => void;
   cycleSpeed: () => void;
+  setSpeed: (speed: number) => void;
   reset: () => void;
 }
 
@@ -190,6 +191,10 @@ export const useVisualizerStore = create<VisualizerState>((set, get) => {
       const idx = SPEED_OPTIONS.indexOf(get().speed);
       const next = SPEED_OPTIONS[(idx + 1) % SPEED_OPTIONS.length];
       set({ speed: next });
+      if (get().isPlaying) scheduleTick(); // re-time the in-flight tick
+    },
+    setSpeed: (speed) => {
+      set({ speed: speed as Speed });
       if (get().isPlaying) scheduleTick(); // re-time the in-flight tick
     },
 

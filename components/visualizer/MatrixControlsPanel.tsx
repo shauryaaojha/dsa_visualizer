@@ -7,6 +7,7 @@ export function MatrixControlsPanel() {
   const program = useMatrixStore((s) => s.program);
   const stepIndex = useMatrixStore((s) => s.stepIndex);
   const isPlaying = useMatrixStore((s) => s.isPlaying);
+  const speed = useMatrixStore((s) => s.speed);
 
   return (
     <TransportBar
@@ -15,11 +16,13 @@ export function MatrixControlsPanel() {
       stepIndex={stepIndex}
       total={program?.steps.length ?? 0}
       complexity={program?.complexity ?? null}
+      speed={speed}
       onToggle={useMatrixStore.getState().togglePlay}
       onForward={useMatrixStore.getState().stepForward}
       onBack={useMatrixStore.getState().stepBack}
       onStart={useMatrixStore.getState().toStart}
       onEnd={useMatrixStore.getState().toEnd}
+      onSpeedChange={useMatrixStore.getState().setSpeed}
     />
   );
 }

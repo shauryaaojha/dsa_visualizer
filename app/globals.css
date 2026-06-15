@@ -52,6 +52,28 @@ body {
   }
 }
 
+/* Playback speed slider thumb (appearance-none strips the native thumb) */
+.speed-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 14px;
+  width: 14px;
+  border-radius: 9999px;
+  background: #ff5f4a;
+  border: 2px solid #131313;
+  box-shadow: 0 0 6px rgba(255, 95, 74, 0.5);
+  cursor: pointer;
+}
+.speed-slider::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 9999px;
+  background: #ff5f4a;
+  border: 2px solid #131313;
+  box-shadow: 0 0 6px rgba(255, 95, 74, 0.5);
+  cursor: pointer;
+}
+
 /* Marching-ants dashed connector (used by pointers / links) */
 @keyframes dash {
   to {

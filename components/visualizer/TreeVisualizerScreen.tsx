@@ -18,13 +18,16 @@ interface Props {
   blurb: string;
   operation: TreeOperationId;
   defaultData?: number[];
+  /** Search target — used by binary search. */
+  defaultTarget?: number;
 }
 
-export function TreeVisualizerScreen({ path, title, blurb, operation, defaultData }: Props) {
+export function TreeVisualizerScreen({ path, title, blurb, operation, defaultData, defaultTarget }: Props) {
   useEffect(() => {
     const store = useTreeStore.getState();
     store.setOperation(operation);
     if (defaultData) store.setValues(defaultData);
+    if (defaultTarget !== undefined) store.setTarget(defaultTarget);
     store.run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path]);
