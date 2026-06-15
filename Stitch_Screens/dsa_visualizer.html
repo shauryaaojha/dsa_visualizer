@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DSA Visualizer - Educator Edition</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#c6c6c7",
+                        "surface": "#131313",
+                        "surface-dim": "#131313",
+                        "background": "#131313",
+                        "inverse-on-surface": "#313030",
+                        "tertiary-fixed-dim": "#9ccaff",
+                        "surface-tint": "#ffb693",
+                        "inverse-primary": "#a04100",
+                        "primary-fixed": "#ffdbcc",
+                        "surface-container-high": "#2a2a2a",
+                        "outline-variant": "#5a4136",
+                        "on-background": "#e5e2e1",
+                        "on-tertiary-fixed-variant": "#00497b",
+                        "surface-variant": "#353534",
+                        "on-secondary-fixed-variant": "#454747",
+                        "on-secondary": "#2f3131",
+                        "inverse-surface": "#e5e2e1",
+                        "on-error-container": "#ffdad6",
+                        "on-tertiary-fixed": "#001d35",
+                        "on-surface": "#e5e2e1",
+                        "secondary-container": "#454747",
+                        "primary": "#ffb693",
+                        "on-surface-variant": "#e2bfb0",
+                        "on-primary-container": "#572000",
+                        "on-secondary-fixed": "#1a1c1c",
+                        "surface-container-lowest": "#0e0e0e",
+                        "secondary": "#c6c6c7",
+                        "tertiary-container": "#059eff",
+                        "secondary-fixed": "#e2e2e2",
+                        "on-primary": "#561f00",
+                        "surface-container": "#201f1f",
+                        "error": "#ffb4ab",
+                        "error-container": "#93000a",
+                        "on-error": "#690005",
+                        "tertiary-fixed": "#d0e4ff",
+                        "surface-bright": "#393939",
+                        "surface-container-highest": "#353534",
+                        "primary-container": "#ff6b00",
+                        "on-secondary-container": "#b4b5b5",
+                        "on-tertiary": "#003257",
+                        "outline": "#a98a7d",
+                        "on-primary-fixed-variant": "#7a3000",
+                        "tertiary": "#9ccaff",
+                        "surface-container-low": "#1c1b1b",
+                        "primary-fixed-dim": "#ffb693",
+                        "on-primary-fixed": "#351000",
+                        "on-tertiary-container": "#003357"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "md": "16px",
+                        "gutter": "16px",
+                        "xl": "48px",
+                        "sm": "8px",
+                        "margin": "24px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["JetBrains Mono"],
+                        "label-caps": ["JetBrains Mono"],
+                        "code-snippet": ["JetBrains Mono"],
+                        "body-md": ["JetBrains Mono"],
+                        "headline-xl": ["JetBrains Mono"],
+                        "headline-md": ["JetBrains Mono"],
+                        "body-sm": ["JetBrains Mono"],
+                        "headline-lg": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "label-caps": ["11px", {"lineHeight": "1.0", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                        "code-snippet": ["13px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "headline-xl": ["40px", {"lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "body-sm": ["12px", {"lineHeight": "1.4", "fontWeight": "400"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #121212;
+            background-image: radial-gradient(circle at 1px 1px, #333333 1px, transparent 0);
+            background-size: 32px 32px;
+            color: #e5e2e1;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .glass-panel {
+            background: rgba(30, 30, 30, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid #333333;
+        }
+        
+        .bst-node {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 16px;
+            position: absolute;
+            background: rgba(30, 30, 30, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid #5a4136;
+            color: #e5e2e1;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .bst-node.active {
+            border-color: #FF5F4A;
+            box-shadow: 0 0 15px rgba(255, 95, 74, 0.4), inset 0 0 10px rgba(255, 95, 74, 0.2);
+            color: #FF5F4A;
+        }
+        
+        .bst-node.visited {
+            border-color: #F5A623;
+            color: #F5A623;
+        }
+        
+        .bst-line {
+            position: absolute;
+            height: 2px;
+            background: #333333;
+            transform-origin: 0 50%;
+            z-index: -1;
+        }
+        
+        .bst-line.active {
+            background: repeating-linear-gradient(90deg, transparent, transparent 4px, #F5A623 4px, #F5A623 8px);
+            animation: dash 1s linear infinite;
+        }
+        
+        @keyframes dash {
+            to {
+                background-position: 16px 0;
+            }
+        }
+        
+        .complexity-badge {
+            background: rgba(245, 166, 35, 0.1);
+            border: 1px solid #F5A623;
+            color: #F5A623;
+        }
+    </style>
+</head>
+<body class="font-body-md text-body-md">
+<!-- Background Shader -->
+<!-- STITCH_SHADER_START:ANIMATION_22 class="absolute inset-0 w-full h-full -z-10 opacity-30" -->
+<div class="absolute inset-0 w-full h-full -z-10 opacity-30" style="display:block;">
+<canvas id="shader-canvas-ANIMATION_22" style="display:block;width:100%;height:100%"></canvas>
+<script>
+(function() {
+  const canvas = document.getElementById('shader-canvas-ANIMATION_22');
+
+  // Sync the WebGL drawing-buffer size with the CSS-driven layout size.
+  // This fires on initial layout and whenever the element is resized.
+  function syncSize() {
+    const w = canvas.clientWidth  || 1280;
+    const h = canvas.clientHeight || 720;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width  = w;
+      canvas.height = h;
+    }
+  }
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(syncSize).observe(canvas);
+  }
+  syncSize();
+
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+  const vs = `attribute vec2 a_position;
+varying vec2 v_texCoord;
+void main() {
+  v_texCoord = a_position * 0.5 + 0.5;
+  gl_Position = vec4(a_position, 0.0, 1.0);
+}`;
+  const fs = `precision highp float;
+
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+
+varying vec2 v_texCoord;
+
+void main() {
+    vec2 uv = v_texCoord;
+    vec2 mouse = u_mouse / u_resolution;
+    
+    // Background gradient (Deep ember/charcoal)
+    vec3 color1 = vec3(0.102, 0.039, 0.0); // #1a0a00
+    vec3 color2 = vec3(0.176, 0.071, 0.0); // #2d1200
+    vec3 color3 = vec3(0.059, 0.102, 0.039); // #0f1a0a
+    
+    vec3 bg = mix(color1, color2, uv.y);
+    bg = mix(bg, color3, uv.x * (1.0 - uv.y));
+
+    // Orb 1: Warm Coral (Top-Left)
+    vec2 pos1 = vec2(0.2, 0.8) + vec2(cos(u_time * 0.2), sin(u_time * 0.3)) * 0.05;
+    pos1 += (mouse - 0.5) * 0.05;
+    float dist1 = length(uv - pos1);
+    float glow1 = smoothstep(0.5, 0.0, dist1);
+    vec3 coral = vec3(1.0, 0.373, 0.29); // #FF5F4A
+    bg += coral * glow1 * 0.15;
+
+    // Orb 2: Amber (Bottom-Right)
+    vec2 pos2 = vec2(0.8, 0.2) + vec2(sin(u_time * 0.25), cos(u_time * 0.15)) * 0.07;
+    pos2 += (mouse - 0.5) * 0.03;
+    float dist2 = length(uv - pos2);
+    float glow2 = smoothstep(0.4, 0.0, dist2);
+    vec3 amber = vec3(0.96, 0.65, 0.137); // #F5A623
+    bg += amber * glow2 * 0.12;
+
+    // Orb 3: Mint (Center-Right)
+    vec2 pos3 = vec2(0.7, 0.5) + vec2(cos(u_time * 0.4), sin(u_time * 0.2)) * 0.04;
+    pos3 += (mouse - 0.5) * 0.02;
+    float dist3 = length(uv - pos3);
+    float glow3 = smoothstep(0.3, 0.0, dist3);
+    vec3 mint = vec3(0.2, 0.788, 0.54); // #34C98A
+    bg += mint * glow3 * 0.08;
+
+    // Subtle grain/noise
+    float n = fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
+    bg += (n - 0.5) * 0.02;
+
+    gl_FragColor = vec4(bg, 1.0);
+}`;
+  function cs(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const pos = gl.getAttribLocation(prog, 'a_position');
+  gl.enableVertexAttribArray(pos);
+  gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+  const uTime = gl.getUniformLocation(prog, 'u_time');
+  const uRes = gl.getUniformLocation(prog, 'u_resolution');
+  const uMouse = gl.getUniformLocation(prog, 'u_mouse');
+
+  // u_mouse is in pixel coordinates matching u_resolution (ShaderToy convention).
+  // Shaders that need normalized coords should use: u_mouse / u_resolution.
+  let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+  window.addEventListener('mousemove', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width && rect.height) {
+      const nx = (event.clientX - rect.left) / rect.width;
+      const ny = 1.0 - (event.clientY - rect.top) / rect.height;
+      mouse.x = nx * canvas.width;
+      mouse.y = ny * canvas.height;
+    }
+  });
+
+  function render(t) {
+    if (typeof ResizeObserver === 'undefined') syncSize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    if (uTime) gl.uniform1f(uTime, t * 0.001);
+    if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
+    if (uMouse) gl.uniform2f(uMouse, mouse.x, mouse.y);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  render(0);
+})();
+</script>
+</div>
+<!-- STITCH_SHADER_END:ANIMATION_22 -->
+<!-- TopNavBar -->
+<nav class="bg-surface-container/80 backdrop-blur-xl fixed top-0 w-full border-b border-outline-variant flex justify-between items-center h-16 px-gutter w-full z-50">
+<div class="flex items-center gap-md">
+<span class="font-headline-md text-headline-md font-bold text-primary">&lt;DS/&gt;</span>
+<span class="text-on-surface-variant ml-sm font-label-caps text-label-caps bg-surface-container-high px-2 py-1 rounded-sm border border-outline-variant">EDUCATOR EDITION</span>
+</div>
+<div class="hidden md:flex items-center gap-lg">
+<a class="text-on-surface-variant hover:text-primary transition-colors active:scale-95 transition-transform font-label-caps text-label-caps" href="#">Array</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors active:scale-95 transition-transform font-label-caps text-label-caps" href="#">Linked List</a>
+<a class="text-primary border-b-2 border-primary pb-1 hover:text-primary transition-colors active:scale-95 transition-transform font-label-caps text-label-caps" href="#">Tree</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors active:scale-95 transition-transform font-label-caps text-label-caps" href="#">Graph</a>
+</div>
+<div class="flex items-center gap-md">
+<button class="bg-primary-container text-surface px-4 py-2 font-label-caps text-label-caps active:scale-95 transition-transform border border-primary-container hover:bg-opacity-90">Speed: 1x</button>
+</div>
+</nav>
+<!-- Main Layout Grid -->
+<div class="flex flex-1 mt-16 pt-0 w-full h-[calc(100vh-96px)] overflow-hidden">
+<!-- Left SideNavBar -->
+<aside class="hidden md:flex flex-col py-md bg-surface-container-low/80 backdrop-blur-xl w-64 border-r border-outline-variant shrink-0 z-40">
+<div class="px-gutter mb-lg">
+<h2 class="font-headline-sm text-headline-sm text-primary mb-1">Visualizer</h2>
+<p class="text-secondary-fixed-dim font-body-sm text-body-sm">v1.0.42</p>
+</div>
+<nav class="flex-1 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-gutter py-2 text-primary font-bold border-r-2 border-primary hover:bg-surface-variant/50 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">explore</span>
+<span class="font-label-caps text-label-caps">Navigator</span>
+</a>
+<a class="flex items-center gap-3 px-gutter py-2 text-secondary-fixed-dim hover:bg-surface-variant/50 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">speed</span>
+<span class="font-label-caps text-label-caps">Complexity</span>
+</a>
+<a class="flex items-center gap-3 px-gutter py-2 text-secondary-fixed-dim hover:bg-surface-variant/50 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">info</span>
+<span class="font-label-caps text-label-caps">Legend</span>
+</a>
+<a class="flex items-center gap-3 px-gutter py-2 text-secondary-fixed-dim hover:bg-surface-variant/50 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="font-label-caps text-label-caps">Minimap</span>
+</a>
+</nav>
+</aside>
+<!-- Main Canvas -->
+<main class="flex-1 relative overflow-hidden flex items-center justify-center">
+<!-- Floating Complexity Badges -->
+<div class="absolute top-lg left-lg flex gap-md z-10">
+<div class="complexity-badge px-3 py-1 font-code-snippet text-code-snippet flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+                    O(log n)
+                </div>
+<div class="complexity-badge px-3 py-1 font-code-snippet text-code-snippet flex items-center gap-2 !border-[#34C98A] !text-[#34C98A] !bg-[rgba(52,201,138,0.1)]">
+<span class="material-symbols-outlined text-[16px]">memory</span>
+                    O(1)
+                </div>
+</div>
+<!-- BST Visualization Area (Simplified Hardcoded Positions for Demo) -->
+<div class="relative w-[600px] h-[400px]">
+<!-- Edges -->
+<div class="bst-line" style="width: 120px; top: 74px; left: 280px; transform: rotate(145deg);"></div>
+<div class="bst-line active" style="width: 120px; top: 74px; left: 320px; transform: rotate(35deg);"></div>
+<div class="bst-line" style="width: 80px; top: 174px; left: 180px; transform: rotate(135deg);"></div>
+<div class="bst-line" style="width: 80px; top: 174px; left: 220px; transform: rotate(45deg);"></div>
+<div class="bst-line" style="width: 80px; top: 174px; left: 380px; transform: rotate(135deg);"></div>
+<div class="bst-line" style="width: 80px; top: 174px; left: 420px; transform: rotate(45deg);"></div>
+<!-- Nodes -->
+<!-- Root -->
+<div class="bst-node visited" style="top: 50px; left: 276px;">50</div>
+<!-- L1 -->
+<div class="bst-node" style="top: 150px; left: 176px;">25</div>
+<div class="bst-node active" style="top: 150px; left: 376px;">75</div>
+<!-- L2 -->
+<div class="bst-node" style="top: 250px; left: 100px;">10</div>
+<div class="bst-node" style="top: 250px; left: 250px;">35</div>
+<div class="bst-node" style="top: 250px; left: 320px;">60</div>
+<div class="bst-node" style="top: 250px; left: 450px;">90</div>
+</div>
+</main>
+<!-- Right Panel - Instructor Notes -->
+<aside class="hidden lg:flex flex-col w-80 p-gutter border-l border-outline-variant bg-surface-container-low/80 backdrop-blur-xl z-40">
+<div class="glass-panel p-md flex-1 flex flex-col">
+<div class="flex items-center justify-between mb-md pb-sm border-b border-outline-variant">
+<h3 class="font-label-caps text-label-caps text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">school</span>
+                        Instructor Notes
+                    </h3>
+</div>
+<div class="flex-1 space-y-md overflow-y-auto">
+<div class="p-sm bg-surface-container border border-outline-variant relative">
+<div class="absolute -left-1 top-2 w-2 h-2 bg-primary-container"></div>
+<p class="font-code-snippet text-code-snippet text-on-surface">
+<span class="text-primary-container">Step 1:</span> Start at Root (50). Target is 60.
+                        </p>
+</div>
+<div class="p-sm bg-surface-container border border-primary relative shadow-[0_0_10px_rgba(255,95,74,0.1)]">
+<div class="absolute -left-1 top-2 w-2 h-2 bg-[#FF5F4A]"></div>
+<p class="font-code-snippet text-code-snippet text-[#FF5F4A]">
+<span class="font-bold">Step 2:</span> Comparing 60 with 50. Since 60 &gt; 50, we move to the <span class="underline">right</span> child of node 50.
+                        </p>
+</div>
+<div class="p-sm bg-surface-container border border-outline-variant opacity-50 relative">
+<div class="absolute -left-1 top-2 w-2 h-2 bg-surface-variant"></div>
+<p class="font-code-snippet text-code-snippet text-on-surface-variant">
+                            Step 3: Comparing 60 with 75...
+                        </p>
+</div>
+</div>
+<div class="mt-md pt-md border-t border-outline-variant">
+<button class="w-full py-2 bg-transparent border border-outline-variant text-on-surface hover:border-primary hover:text-primary transition-colors font-label-caps text-label-caps flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[16px]">edit_note</span>
+                        Edit Notes
+                    </button>
+</div>
+</div>
+</aside>
+</div>
+<!-- Footer / Bottom Status & Controls Bar -->
+<footer class="bg-surface-container-lowest fixed bottom-0 w-full h-16 border-t border-outline-variant flex justify-between items-center px-gutter text-on-surface-variant z-50">
+<div class="flex items-center gap-md">
+<span class="font-label-caps text-label-caps text-on-surface">DSA Visualizer | Ember &amp; Coral Edition</span>
+<div class="hidden sm:flex gap-4 ml-lg">
+<a class="font-body-sm text-body-sm hover:text-primary-fixed" href="#">Documentation</a>
+<a class="font-body-sm text-body-sm hover:text-primary-fixed" href="#">Complexity Guide</a>
+<a class="font-body-sm text-body-sm hover:text-primary-fixed" href="#">API</a>
+</div>
+</div>
+<!-- Classroom Controls -->
+<div class="flex items-center gap-2 bg-surface-container p-1 border border-outline-variant">
+<button class="p-1 hover:bg-surface-variant text-secondary-fixed-dim hover:text-primary transition-colors" title="Reset">
+<span class="material-symbols-outlined">skip_previous</span>
+</button>
+<button class="p-1 hover:bg-surface-variant text-secondary-fixed-dim hover:text-primary transition-colors" title="Step Back">
+<span class="material-symbols-outlined">fast_rewind</span>
+</button>
+<button class="px-4 py-1 bg-primary-container text-surface font-label-caps text-label-caps hover:bg-opacity-90 transition-colors flex items-center gap-1" title="Play/Pause">
+<span class="material-symbols-outlined text-[18px]">play_arrow</span>
+                PLAY
+            </button>
+<button class="p-1 hover:bg-surface-variant text-secondary-fixed-dim hover:text-primary transition-colors" title="Step Forward">
+<span class="material-symbols-outlined">fast_forward</span>
+</button>
+<button class="p-1 hover:bg-surface-variant text-secondary-fixed-dim hover:text-primary transition-colors" title="End">
+<span class="material-symbols-outlined">skip_next</span>
+</button>
+</div>
+</footer>
+</body></html>
