@@ -6,7 +6,9 @@ import { MatrixCanvas } from "@/components/visualizer/MatrixCanvas";
 import { MatrixControlsPanel } from "@/components/visualizer/MatrixControlsPanel";
 import { MatrixNotes } from "@/components/visualizer/MatrixNotes";
 import { MatrixSidebar } from "@/components/visualizer/MatrixSidebar";
+import { TheoryButton } from "@/components/visualizer/TheoryButton";
 import { TopicHeader } from "@/components/visualizer/TopicHeader";
+import { getTheory } from "@/data/theory";
 import { useMatrixStore } from "@/lib/matrixStore";
 import type { MatrixOperationId } from "@/types/visualization";
 
@@ -33,6 +35,7 @@ export function MatrixVisualizerScreen({ path, title, blurb, operation, rows = 3
     <AppShell sidebar={<MatrixSidebar />} footer={<MatrixControlsPanel />}>
       <main className="relative flex flex-1 items-center justify-center overflow-hidden pt-16">
         <TopicHeader path={path} title={title} blurb={blurb} />
+        <TheoryButton doc={getTheory(path)} />
         <MatrixCanvas />
       </main>
       <MatrixNotes />

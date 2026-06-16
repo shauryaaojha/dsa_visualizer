@@ -759,6 +759,260 @@ function twoPointer(cells: ArrayCell[], target: number): AnimationProgram {
   };
 }
 
+// --- LeetCode patterns -----------------------------------------------------
+
+// Maximum Subarray (Kadane). Track the best sum ending here vs. starting fresh.
+function kadane(cells: ArrayCell[]): AnimationProgram {
+  const steps: AnimationStep[] = [];
+  steps.push(frame(cells, "Kadane: scan once, keeping the best subarray sum ending at each index.", { codeLines: [1] }));
+  if (!cells.length) return { steps, complexity: { time: "O(n)", space: "O(1)" }, title: "Maximum Subarray", pseudocode: ["—"] };
+  let cur = cells[0].value;
+  let best = cur;
+  let bs = 0, be = 0, s = 0;
+  steps.push(frame(cells, `Start: cur = best = ${cur} (the first element).`, { highlights: { [cells[0].id]: "active" }, pointers: [{ label: "i", index: 0 }], codeLines: [2] }));
+  for (let i = 1; i < cells.length; i++) {
+    const v = cells[i].value;
+    const extend = cur + v;
+    const restart = extend < v;
+    if (restart) { cur = v; s = i; } else { cur = extend; }
+    const win: Record<string, HighlightKind> = {};
+    for (let x = s; x <= i; x++) win[cells[x].id] = "compare";
+    steps.push(
+      frame(cells, restart
+        ? `Dropping the prefix is better — restart the window at index ${i} (cur = ${cur}).`
+        : `Extend the window with ${v} → cur = ${cur}.`, {
+        highlights: win,
+        pointers: [{ label: "i", index: i }, { label: "start", index: s, color: "#F5A623" }],
+        codeLines: [3, 4],
+      }),
+    );
+    if (cur > best) { best = cur; bs = s; be = i; }
+  }
+  const bestHi: Record<string, HighlightKind> = {};
+  for (let x = bs; x <= be; x++) bestHi[cells[x].id] = "found";
+  steps.push(frame(cells, `Best subarray is [${bs}…${be}] with sum ${best}.`, { highlights: bestHi, codeLines: [5] }));
+  return {
+    steps,
+    complexity: { time: "O(n)", space: "O(1)" },
+    title: "Maximum Subarray (Kadane)",
+    pseudocode: ["best = cur = a[0]", "for i = 1..n-1:", "  cur = max(a[i], cur + a[i])", "  best = max(best, cur)", "return best"],
+  };
+}
+
+// Best Time to Buy and Sell Stock. Track the lowest price so far; best profit.
+function maxProfit(cells: ArrayCell[]): AnimationProgram {
+  const steps: AnimationStep[] = [];
+  steps.push(frame(cells, "One pass: remember the cheapest day so far, and the best profit if we sell today.", { codeLines: [1] }));
+  if (!cells.length) return { steps, complexity: { time: "O(n)", space: "O(1)" }, title: "Best Time to Buy & Sell Stock", pseudocode: ["—"] };
+  let minI = 0;
+  let best = 0, buyI = 0, sellI = 0;
+  steps.push(frame(cells, `Day 0: buy at ${cells[0].value} (cheapest so far).`, { highlights: { [cells[0].id]: "target" }, pointers: [{ label: "buy", index: 0, color: "#34C98A" }], codeLines: [2] }));
+  for (let i = 1; i < cells.length; i++) {
+    const profit = cells[i].value - cells[minI].value;
+    const hl: Record<string, HighlightKind> = { [cells[minI].id]: "target", [cells[i].id]: "compare" };
+    steps.push(
+      frame(cells, `Sell on day ${i} (${cells[i].value}) − buy (${cells[minI].value}) = ${profit}.`, {
+        highlights: hl,
+        pointers: [{ label: "buy", index: minI, color: "#34C98A" }, { label: "i", index: i }],
+        codeLines: [3, 4],
+      }),
+    );
+    if (profit > best) { best = profit; buyI = minI; sellI = i; }
+    if (cells[i].value < cells[minI].value) {
+      minI = i;
+      steps.push(frame(cells, `New cheapest price ${cells[i].value} at day ${i} — buy here instead.`, { highlights: { [cells[i].id]: "target" }, pointers: [{ label: "buy", index: i, color: "#34C98A" }], codeLines: [5] }));
+    }
+  }
+  const fin: Record<string, HighlightKind> = best > 0 ? { [cells[buyI].id]: "found", [cells[sellI].id]: "found" } : {};
+  steps.push(frame(cells, best > 0 ? `Max profit ${best}: buy day ${buyI} (${cells[buyI].value}), sell day ${sellI} (${cells[sellI].value}).` : "Prices only fall — no profit is possible (return 0).", { highlights: fin, codeLines: [6] }));
+  return {
+    steps,
+    complexity: { time: "O(n)", space: "O(1)" },
+    title: "Best Time to Buy & Sell Stock",
+    pseudocode: ["min = a[0], best = 0", "for i = 1..n-1:", "  best = max(best, a[i] - min)", "  min = min(min, a[i])", "return best"],
+  };
+}
+
+// Move Zeroes. Stable two-pointer: `w` marks where the next non-zero goes.
+function moveZeroes(cells: ArrayCell[]): AnimationProgram {
+  const steps: AnimationStep[] = [];
+  const working = clone(cells);
+  steps.push(frame(working, "Move every 0 to the end, keeping the order of non-zeros. `w` = write index.", { codeLines: [1] }));
+  let w = 0;
+  for (let i = 0; i < working.length; i++) {
+    const isZero = working[i].value === 0;
+    steps.push(
+      frame(working, isZero ? `array[${i}] is 0 — skip it.` : `array[${i}] = ${working[i].value} is non-zero → write to index ${w}.`, {
+        highlights: { [working[i].id]: isZero ? "visited" : "compare" },
+        pointers: [{ label: "w", index: w, color: "#34C98A" }, { label: "i", index: i }],
+        codeLines: [2, 3],
+      }),
+    );
+    if (!isZero) {
+      if (i !== w) {
+        [working[w], working[i]] = [working[i], working[w]];
+        steps.push(frame(working, `Swap into place: index ${w} ↔ index ${i}.`, { highlights: { [working[w].id]: "swap", [working[i].id]: "swap" }, pointers: [{ label: "w", index: w, color: "#34C98A" }], codeLines: [4] }));
+      }
+      w++;
+    }
+  }
+  const done: Record<string, HighlightKind> = {};
+  working.forEach((c, i) => (done[c.id] = i < w ? "found" : "visited"));
+  steps.push(frame(working, `Done — ${w} non-zeros packed left, zeros pushed right.`, { highlights: done }));
+  return {
+    steps,
+    complexity: { time: "O(n)", space: "O(1)" },
+    title: "Move Zeroes",
+    pseudocode: ["w = 0", "for i = 0..n-1:", "  if a[i] != 0:", "    swap(a[w], a[i]); w++", "// zeros end up at the tail"],
+  };
+}
+
+// Container With Most Water. Two pointers from the ends; move the shorter wall in.
+function maxArea(cells: ArrayCell[]): AnimationProgram {
+  const steps: AnimationStep[] = [];
+  steps.push(frame(cells, "Two walls; area = min(height) × width. Start wide and move the shorter wall inward.", { codeLines: [1] }));
+  let l = 0, r = cells.length - 1, best = 0, bl = 0, br = cells.length - 1;
+  while (l < r) {
+    const h = Math.min(cells[l].value, cells[r].value);
+    const area = h * (r - l);
+    steps.push(
+      frame(cells, `Walls ${l},${r}: min(${cells[l].value}, ${cells[r].value}) × ${r - l} = ${area}.`, {
+        highlights: { [cells[l].id]: "compare", [cells[r].id]: "compare" },
+        pointers: [{ label: "L", index: l }, { label: "R", index: r }],
+        codeLines: [2, 3],
+      }),
+    );
+    if (area > best) { best = area; bl = l; br = r; }
+    if (cells[l].value < cells[r].value) {
+      steps.push(frame(cells, `Left wall is shorter → move L right (the only way the area can grow).`, { highlights: { [cells[l].id]: "visited" }, codeLines: [4] }));
+      l++;
+    } else {
+      steps.push(frame(cells, `Right wall is ≤ left → move R left.`, { highlights: { [cells[r].id]: "visited" }, codeLines: [5] }));
+      r--;
+    }
+  }
+  steps.push(frame(cells, `Largest container uses walls ${bl} and ${br}: area ${best}.`, { highlights: { [cells[bl].id]: "found", [cells[br].id]: "found" }, codeLines: [6] }));
+  return {
+    steps,
+    complexity: { time: "O(n)", space: "O(1)" },
+    title: "Container With Most Water",
+    pseudocode: ["l = 0, r = n-1, best = 0", "while l < r:", "  best = max(best, min(h[l],h[r])*(r-l))", "  if h[l] < h[r]: l++", "  else: r--"],
+  };
+}
+
+// Sort Colors (Dutch National Flag). 3-way partition: 0s, 1s, 2s in one pass.
+function sortColors(cells: ArrayCell[]): AnimationProgram {
+  const steps: AnimationStep[] = [];
+  const working = clone(cells);
+  steps.push(frame(working, "Dutch flag: low collects 0s, high collects 2s, mid scans. One pass, no extra space.", { codeLines: [1] }));
+  let low = 0, mid = 0, high = working.length - 1;
+  const guard = working.length * 2 + 2;
+  let g = 0;
+  while (mid <= high && g++ < guard) {
+    const v = working[mid].value;
+    steps.push(
+      frame(working, `mid points at ${v}.`, {
+        highlights: { [working[mid].id]: "compare" },
+        pointers: [{ label: "low", index: low, color: "#34C98A" }, { label: "mid", index: mid }, { label: "high", index: high, color: "#F5A623" }],
+        codeLines: [2, 3],
+      }),
+    );
+    if (v === 0) {
+      if (low !== mid) [working[low], working[mid]] = [working[mid], working[low]];
+      steps.push(frame(working, `0 → swap into the low region (index ${low}); advance low and mid.`, { highlights: { [working[low].id]: "swap" }, codeLines: [4] }));
+      low++; mid++;
+    } else if (v === 2) {
+      if (high !== mid) [working[high], working[mid]] = [working[mid], working[high]];
+      steps.push(frame(working, `2 → swap into the high region (index ${high}); shrink high. (mid stays — new value is unchecked.)`, { highlights: { [working[high].id]: "swap" }, codeLines: [5] }));
+      high--;
+    } else {
+      steps.push(frame(working, `1 → already in the middle band; just advance mid.`, { highlights: { [working[mid].id]: "visited" }, codeLines: [6] }));
+      mid++;
+    }
+  }
+  const done: Record<string, HighlightKind> = {};
+  working.forEach((c) => (done[c.id] = "found"));
+  steps.push(frame(working, "Sorted: all 0s, then 1s, then 2s.", { highlights: done }));
+  return {
+    steps,
+    complexity: { time: "O(n)", space: "O(1)" },
+    title: "Sort Colors (Dutch Flag)",
+    pseudocode: ["low = mid = 0, high = n-1", "while mid <= high:", "  if a[mid]==0: swap(low++,mid++)", "  elif a[mid]==2: swap(mid,high--)", "  else: mid++"],
+  };
+}
+
+// Remove Duplicates from Sorted Array. `w` = end of the unique prefix.
+function removeDuplicates(cells: ArrayCell[]): AnimationProgram {
+  const steps: AnimationStep[] = [];
+  const working = clone(cells);
+  steps.push(frame(working, "Sorted input: keep a unique prefix. `w` is the last unique slot; `i` scans ahead.", { codeLines: [1] }));
+  if (!working.length) return { steps, complexity: { time: "O(n)", space: "O(1)" }, title: "Remove Duplicates (Sorted)", pseudocode: ["—"] };
+  let w = 0;
+  const kept: Record<string, HighlightKind> = { [working[0].id]: "found" };
+  steps.push(frame(working, `array[0] = ${working[0].value} is always kept.`, { highlights: { ...kept }, pointers: [{ label: "w", index: 0, color: "#34C98A" }], codeLines: [2] }));
+  for (let i = 1; i < working.length; i++) {
+    const dup = working[i].value === working[w].value;
+    steps.push(
+      frame(working, dup ? `array[${i}] = ${working[i].value} equals the last unique — skip.` : `array[${i}] = ${working[i].value} is new → keep it.`, {
+        highlights: { ...kept, [working[i].id]: dup ? "visited" : "compare" },
+        pointers: [{ label: "w", index: w, color: "#34C98A" }, { label: "i", index: i }],
+        codeLines: [3, 4],
+      }),
+    );
+    if (!dup) {
+      w++;
+      working[w] = { ...working[i] };
+      kept[working[w].id] = "found";
+      steps.push(frame(working, `Write it to index ${w}.`, { highlights: { ...kept }, pointers: [{ label: "w", index: w, color: "#34C98A" }], codeLines: [5] }));
+    }
+  }
+  steps.push(frame(working, `${w + 1} unique values occupy indices [0…${w}].`, { highlights: { ...kept } }));
+  return {
+    steps,
+    complexity: { time: "O(n)", space: "O(1)" },
+    title: "Remove Duplicates (Sorted)",
+    pseudocode: ["w = 0", "for i = 1..n-1:", "  if a[i] != a[w]:", "    w++; a[w] = a[i]", "return w + 1  // new length"],
+  };
+}
+
+// Majority Element (Boyer–Moore voting). A candidate survives a vote count.
+function majorityElement(cells: ArrayCell[]): AnimationProgram {
+  const steps: AnimationStep[] = [];
+  steps.push(frame(cells, "Boyer–Moore voting: a candidate gains a vote for a match, loses one otherwise.", { codeLines: [1] }));
+  if (!cells.length) return { steps, complexity: { time: "O(n)", space: "O(1)" }, title: "Majority Element", pseudocode: ["—"] };
+  let candIdx = 0, count = 0;
+  for (let i = 0; i < cells.length; i++) {
+    if (count === 0) {
+      candIdx = i;
+      count = 1;
+      steps.push(frame(cells, `count is 0 → adopt array[${i}] = ${cells[i].value} as the candidate (count = 1).`, { highlights: { [cells[i].id]: "target" }, pointers: [{ label: "cand", index: i, color: "#34C98A" }, { label: "i", index: i }], codeLines: [2, 3] }));
+    } else {
+      const match = cells[i].value === cells[candIdx].value;
+      count += match ? 1 : -1;
+      steps.push(
+        frame(cells, match ? `array[${i}] = ${cells[i].value} matches the candidate → count = ${count}.` : `array[${i}] = ${cells[i].value} differs → count = ${count}.`, {
+          highlights: { [cells[candIdx].id]: "target", [cells[i].id]: match ? "compare" : "visited" },
+          pointers: [{ label: "cand", index: candIdx, color: "#34C98A" }, { label: "i", index: i }],
+          codeLines: [4, 5],
+        }),
+      );
+    }
+  }
+  // Verify (the candidate is only guaranteed if a majority truly exists).
+  const candVal = cells[candIdx].value;
+  const occurrences = cells.filter((c) => c.value === candVal).length;
+  const isMajority = occurrences > cells.length / 2;
+  const hl: Record<string, HighlightKind> = {};
+  cells.forEach((c) => { if (c.value === candVal) hl[c.id] = "found"; });
+  steps.push(frame(cells, isMajority ? `Candidate ${candVal} appears ${occurrences}/${cells.length} times — it is the majority.` : `Candidate ${candVal} appears only ${occurrences}/${cells.length} times — no true majority exists here.`, { highlights: hl, codeLines: [6] }));
+  return {
+    steps,
+    complexity: { time: "O(n)", space: "O(1)" },
+    title: "Majority Element",
+    pseudocode: ["count = 0", "for x in a:", "  if count == 0: cand = x", "  count += (x == cand) ? 1 : -1", "return cand"],
+  };
+}
+
 // --- Public dispatch -------------------------------------------------------
 
 export const ARRAY_OPERATIONS: ArrayOperationMeta[] = [
@@ -778,6 +1032,13 @@ export const ARRAY_OPERATIONS: ArrayOperationMeta[] = [
   { id: "prefixSum", label: "Prefix Sum", icon: "functions", params: [], hint: "Running totals for O(1) range sums." },
   { id: "slidingWindow", label: "Sliding Window", icon: "crop_landscape", params: ["value"], hint: "Max sum of k consecutive (value = k)." },
   { id: "twoPointer", label: "Two Pointer", icon: "compare_arrows", params: ["value"], hint: "Pair sum on sorted (value = target)." },
+  { id: "kadane", label: "Max Subarray", icon: "show_chart", params: [], hint: "Kadane: largest contiguous sum." },
+  { id: "maxProfit", label: "Stock Profit", icon: "trending_up", params: [], hint: "Best single buy/sell profit." },
+  { id: "moveZeroes", label: "Move Zeroes", icon: "exposure_zero", params: [], hint: "Push 0s to the end, keep order." },
+  { id: "maxArea", label: "Max Water", icon: "water", params: [], hint: "Container with most water (two-pointer)." },
+  { id: "sortColors", label: "Sort Colors", icon: "palette", params: [], hint: "Dutch flag — 0/1/2 in one pass." },
+  { id: "removeDuplicates", label: "Dedup Sorted", icon: "filter_alt", params: [], hint: "Unique prefix of a sorted array." },
+  { id: "majorityElement", label: "Majority", icon: "how_to_vote", params: [], hint: "Boyer–Moore voting." },
 ];
 
 export interface RunParams {
@@ -830,6 +1091,20 @@ export function runArrayOperation(
       return slidingWindow(cells, params.k ?? value ?? 3);
     case "twoPointer":
       return twoPointer(cells, params.target ?? value ?? 0);
+    case "kadane":
+      return kadane(cells);
+    case "maxProfit":
+      return maxProfit(cells);
+    case "moveZeroes":
+      return moveZeroes(cells);
+    case "maxArea":
+      return maxArea(cells);
+    case "sortColors":
+      return sortColors(cells);
+    case "removeDuplicates":
+      return removeDuplicates(cells);
+    case "majorityElement":
+      return majorityElement(cells);
     default:
       return traverse(cells);
   }

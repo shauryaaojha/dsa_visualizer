@@ -5,10 +5,12 @@
 import { useEffect } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { RecursionTreeCanvas } from "@/components/visualizer/RecursionTreeCanvas";
+import { TheoryButton } from "@/components/visualizer/TheoryButton";
 import { TopicHeader } from "@/components/visualizer/TopicHeader";
 import { TreeControlsPanel } from "@/components/visualizer/TreeControlsPanel";
 import { TreeNotes } from "@/components/visualizer/TreeNotes";
 import { TreeSidebar } from "@/components/visualizer/TreeSidebar";
+import { getTheory } from "@/data/theory";
 import { useTreeStore } from "@/lib/treeStore";
 import type { TreeOperationId } from "@/types/visualization";
 
@@ -36,6 +38,7 @@ export function TreeVisualizerScreen({ path, title, blurb, operation, defaultDat
     <AppShell sidebar={<TreeSidebar />} footer={<TreeControlsPanel />}>
       <main className="relative flex flex-1 items-stretch overflow-hidden pt-16">
         <TopicHeader path={path} title={title} blurb={blurb} />
+        <TheoryButton doc={getTheory(path)} />
         <div className="flex-1 pt-12">
           <RecursionTreeCanvas />
         </div>

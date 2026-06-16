@@ -81,7 +81,15 @@ export type ArrayOperationId =
   | "quickSort"
   | "prefixSum"
   | "slidingWindow"
-  | "twoPointer";
+  | "twoPointer"
+  // --- LeetCode patterns ---
+  | "kadane"
+  | "maxProfit"
+  | "moveZeroes"
+  | "maxArea"
+  | "sortColors"
+  | "removeDuplicates"
+  | "majorityElement";
 
 export interface ArrayOperationMeta {
   id: ArrayOperationId;
@@ -249,4 +257,9 @@ export type LLOperationId =
   | "deleteEnd"
   | "deletePosition"
   | "josephus"
-  | "polynomial";
+  | "polynomial"
+  // --- LeetCode classics ---
+  | "reverseList"
+  | "findMiddle"
+  | "removeNthEnd"
+  | "palindrome";

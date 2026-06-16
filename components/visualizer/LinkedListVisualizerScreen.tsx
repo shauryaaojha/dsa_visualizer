@@ -10,7 +10,9 @@ import { LinkedListCanvas } from "@/components/visualizer/LinkedListCanvas";
 import { LinkedListControlsPanel } from "@/components/visualizer/LinkedListControlsPanel";
 import { LinkedListNotes } from "@/components/visualizer/LinkedListNotes";
 import { LinkedListSidebar } from "@/components/visualizer/LinkedListSidebar";
+import { TheoryButton } from "@/components/visualizer/TheoryButton";
 import { TopicHeader } from "@/components/visualizer/TopicHeader";
+import { getTheory } from "@/data/theory";
 import { useLinkedListStore } from "@/lib/linkedListStore";
 import type { LLKind, LLOperationId } from "@/types/visualization";
 
@@ -47,6 +49,7 @@ export function LinkedListVisualizerScreen({
     <AppShell sidebar={<LinkedListSidebar />} footer={<LinkedListControlsPanel />}>
       <main className="relative flex flex-1 items-center justify-center overflow-hidden pt-16">
         <TopicHeader path={path} title={title} blurb={blurb} />
+        <TheoryButton doc={getTheory(path)} />
         <LinkedListCanvas />
       </main>
       <LinkedListNotes />

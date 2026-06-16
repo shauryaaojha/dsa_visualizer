@@ -7,8 +7,10 @@
 import { useEffect } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { InstructorNotes } from "@/components/visualizer/InstructorNotes";
+import { TheoryButton } from "@/components/visualizer/TheoryButton";
 import { TopicHeader } from "@/components/visualizer/TopicHeader";
 import { VisualizerCanvas } from "@/components/visualizer/VisualizerCanvas";
+import { getTheory } from "@/data/theory";
 import { useVisualizerStore } from "@/lib/visualizerStore";
 import type { ArrayOperationId } from "@/types/visualization";
 
@@ -36,6 +38,7 @@ export function ArrayVisualizerScreen({ path, title, blurb, operation, defaultDa
     <AppShell>
       <main className="relative flex flex-1 items-center justify-center overflow-hidden pt-16">
         <TopicHeader path={path} title={title} blurb={blurb} />
+        <TheoryButton doc={getTheory(path)} />
         <VisualizerCanvas />
       </main>
       <InstructorNotes />

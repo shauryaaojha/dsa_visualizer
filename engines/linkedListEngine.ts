@@ -405,6 +405,144 @@ function fmtTerm(coef: number, exp: number): string {
   return `${coef}x^${exp}`;
 }
 
+// --- LeetCode classics -----------------------------------------------------
+
+const C_SLOW = "#34C98A"; // reuse mint for slow
+const C_FAST = "#8ab4ff"; // soft blue for fast
+
+// Reverse the list. We flip the visual order and re-derive the wiring, while
+// narrating the classic prev/curr/next three-pointer walk.
+function reverseList(b: Builder): LLProgram {
+  snapshot(b, ptrs(b, { curr: b.headId }), "Reverse: walk the list flipping each next pointer backwards.", [1]);
+  const order = b.nodes.map((n) => n.id);
+  let prevId: string | null = null;
+  for (let i = 0; i < order.length; i++) {
+    const currId = order[i];
+    setState(b, currId, "active");
+    snapshot(b, ptrs(b, { prev: prevId, curr: currId }), `Point curr (${b.nodes.find((n) => n.id === currId)!.value}).next back to prev; then advance.`, [2, 3, 4]);
+    setState(b, currId, "visited");
+    prevId = currId;
+  }
+  // Flip the visual order so the rewire produces the reversed list.
+  b.nodes.reverse();
+  rewire(b);
+  clearStates(b);
+  snapshot(b, ptrs(b, { curr: b.headId }), "All links flipped — the old tail is the new head.", [5]);
+  return done(b, `Reverse (${b.kind})`, { time: "O(n)", space: "O(1)" }, [
+    "prev = NULL, curr = head",
+    "while curr != NULL:",
+    "  next = curr.next",
+    "  curr.next = prev",
+    "  prev = curr; curr = next",
+  ]);
+}
+
+// Middle of the list with the tortoise/hare: fast moves 2×, slow lands on the middle.
+function findMiddle(b: Builder): LLProgram {
+  snapshot(b, ptrs(b), "Two runners from head: slow steps 1, fast steps 2. When fast ends, slow is the middle.", [1]);
+  const order = b.nodes.map((n) => n.id);
+  const n = order.length;
+  let slow = 0, fast = 0;
+  while (fast < n && fast + 1 < n) {
+    slow += 1;
+    fast += 2;
+    const slowId = order[slow];
+    const fastId = fast < n ? order[fast] : null;
+    setState(b, slowId, "active");
+    snapshot(b, [
+      ...ptrs(b),
+      { label: "slow", nodeId: slowId, color: C_SLOW },
+      ...(fastId ? [{ label: "fast", nodeId: fastId, color: C_FAST }] : []),
+    ], fastId ? `slow → index ${slow}, fast → index ${fast}.` : `slow → index ${slow}; fast ran off the end.`, [2, 3]);
+    setState(b, slowId, "idle");
+  }
+  const midId = order[slow];
+  setState(b, midId, "found");
+  snapshot(b, [...ptrs(b), { label: "mid", nodeId: midId, color: C_SLOW }], `Middle node: ${b.nodes.find((x) => x.id === midId)!.value} (index ${slow}).`, [4]);
+  return done(b, `Middle (${b.kind})`, { time: "O(n)", space: "O(1)" }, [
+    "slow = fast = head",
+    "while fast and fast.next:",
+    "  slow = slow.next",
+    "  fast = fast.next.next",
+    "return slow",
+  ]);
+}
+
+// Remove Nth node from the end via a fixed gap of n between two pointers.
+function removeNthEnd(b: Builder, nth: number): LLProgram {
+  const len = b.nodes.length;
+  const k = Math.max(1, Math.min(nth || 1, len));
+  snapshot(b, ptrs(b, { curr: b.headId }), `Remove the ${k}-th node from the end. Open a gap of ${k} between fast and slow.`, [1]);
+  const order = b.nodes.map((n) => n.id);
+  // Advance fast k steps to create the gap.
+  let fast = 0;
+  for (let i = 0; i < k; i++) {
+    fast = i;
+    setState(b, order[fast], "visited");
+    snapshot(b, [...ptrs(b), { label: "fast", nodeId: order[fast], color: C_FAST }], `Advance fast ${i + 1}/${k} to build the gap.`, [2]);
+  }
+  clearStates(b);
+  // Move both until fast hits the last node; slow then sits before the target.
+  let slow = -1; // slow starts "before head"
+  let f = k - 1;
+  while (f < len - 1) {
+    f += 1;
+    slow += 1;
+    const prevId = slow >= 0 ? order[slow] : null;
+    snapshot(b, [
+      ...ptrs(b),
+      ...(prevId ? [{ label: "slow", nodeId: prevId, color: C_SLOW }] : []),
+      { label: "fast", nodeId: order[f], color: C_FAST },
+    ], "Move fast and slow together until fast reaches the tail.", [3]);
+  }
+  const targetIdx = slow + 1; // node to remove
+  const targetId = order[targetIdx];
+  setState(b, targetId, "removing");
+  snapshot(b, [...ptrs(b), { label: "target", nodeId: targetId, color: C_CURR }], `slow.next is the target (${b.nodes.find((x) => x.id === targetId)!.value}) — unlink it.`, [4]);
+  b.nodes.splice(targetIdx, 1);
+  rewire(b);
+  clearStates(b);
+  snapshot(b, ptrs(b), `Removed the ${k}-th node from the end.`, [5]);
+  return done(b, `Remove ${k}th From End (${b.kind})`, { time: "O(n)", space: "O(1)" }, [
+    "fast = head; advance n steps",
+    "slow = dummy(head)",
+    "while fast: fast=fast.next; slow=slow.next",
+    "slow.next = slow.next.next",
+    "return head",
+  ]);
+}
+
+// Palindrome check: find the middle, then compare the front with the reversed back.
+function palindrome(b: Builder): LLProgram {
+  const vals = b.nodes.map((n) => n.value);
+  snapshot(b, ptrs(b), "Palindrome? Compare the list with itself reversed, walking inward from both ends.", [1]);
+  let l = 0, r = b.nodes.length - 1;
+  let ok = true;
+  while (l < r) {
+    const lId = b.nodes[l].id, rId = b.nodes[r].id;
+    const match = vals[l] === vals[r];
+    setState(b, lId, match ? "target" : "removing");
+    setState(b, rId, match ? "target" : "removing");
+    snapshot(b, [
+      ...ptrs(b),
+      { label: "left", nodeId: lId, color: C_SLOW },
+      { label: "right", nodeId: rId, color: C_TAIL },
+    ], `Compare ${vals[l]} and ${vals[r]} — ${match ? "match" : "mismatch!"}.`, [2, 3]);
+    setState(b, lId, "visited");
+    setState(b, rId, "visited");
+    if (!match) { ok = false; break; }
+    l++; r--;
+  }
+  if (ok) b.nodes.forEach((n) => setState(b, n.id, "found"));
+  snapshot(b, ptrs(b), ok ? "Every pair matched — the list is a palindrome. ✓" : "A pair differed — not a palindrome.", [4]);
+  return done(b, `Palindrome (${b.kind})`, { time: "O(n)", space: "O(1)" }, [
+    "find middle (slow/fast)",
+    "reverse the second half",
+    "compare halves node by node",
+    "return all matched",
+  ]);
+}
+
 // --- Dispatch --------------------------------------------------------------
 
 export interface LLRunParams {
@@ -448,6 +586,14 @@ export function runLinkedListOperation(
       return deletePosition(b, index);
     case "josephus":
       return josephus(b, value || 2);
+    case "reverseList":
+      return reverseList(b);
+    case "findMiddle":
+      return findMiddle(b);
+    case "removeNthEnd":
+      return removeNthEnd(b, value || 2);
+    case "palindrome":
+      return palindrome(b);
     default:
       return traverse(b);
   }
@@ -471,4 +617,8 @@ export const LL_OPERATIONS: LLOperationMeta[] = [
   { id: "deleteBegin", label: "Delete Begin", icon: "first_page", params: [], hint: "Remove the head — O(1)." },
   { id: "deleteEnd", label: "Delete End", icon: "last_page", params: [], hint: "Remove the tail node." },
   { id: "deletePosition", label: "Delete Pos", icon: "delete", params: ["index"], hint: "Unlink the node at an index." },
+  { id: "reverseList", label: "Reverse", icon: "swap_horiz", params: [], hint: "Flip every next pointer (prev/curr/next)." },
+  { id: "findMiddle", label: "Find Middle", icon: "align_horizontal_center", params: [], hint: "Tortoise & hare — slow lands on the middle." },
+  { id: "removeNthEnd", label: "Remove Nth End", icon: "last_page", params: ["value"], hint: "Two pointers with a gap of n (value = n)." },
+  { id: "palindrome", label: "Palindrome", icon: "compare_arrows", params: [], hint: "Compare the list with its reverse." },
 ];

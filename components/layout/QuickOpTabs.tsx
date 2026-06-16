@@ -21,6 +21,13 @@ const OP_ROUTES: Record<string, string> = {
   prefixSum:     "/topics/arrays/advanced-array/prefix-sum",
   slidingWindow: "/topics/arrays/advanced-array/sliding-window",
   twoPointer:    "/topics/arrays/advanced-array/two-pointer",
+  kadane:           "/topics/arrays/patterns/maximum-subarray",
+  maxProfit:        "/topics/arrays/patterns/best-time-stock",
+  moveZeroes:       "/topics/arrays/patterns/move-zeroes",
+  maxArea:          "/topics/arrays/patterns/container-most-water",
+  sortColors:       "/topics/arrays/patterns/sort-colors",
+  removeDuplicates: "/topics/arrays/patterns/remove-duplicates",
+  majorityElement:  "/topics/arrays/patterns/majority-element",
 };
 
 export function QuickOpTabs() {

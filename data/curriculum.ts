@@ -114,6 +114,22 @@ const arrays: SectionMeta = {
         { slug: "sparse-matrix", title: "Sparse Matrix", blurb: "Store only non-zeros as triplets.", icon: "scatter_plot", complexity: { time: "O(m·n)", space: "O(k)" } },
       ],
     },
+    {
+      slug: "patterns",
+      title: "LeetCode Patterns",
+      blurb: "Classic interview problems that turn the array techniques into solutions.",
+      icon: "code",
+      status: "available",
+      leaves: [
+        { slug: "maximum-subarray", title: "Maximum Subarray", blurb: "Kadane: largest contiguous sum (#53).", icon: "show_chart", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "best-time-stock", title: "Buy & Sell Stock", blurb: "Best single buy/sell profit (#121).", icon: "trending_up", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "move-zeroes", title: "Move Zeroes", blurb: "Push 0s to the end, keep order (#283).", icon: "exposure_zero", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "container-most-water", title: "Container With Most Water", blurb: "Two-pointer max area (#11).", icon: "water", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "sort-colors", title: "Sort Colors", blurb: "Dutch flag — 0/1/2 in one pass (#75).", icon: "palette", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "remove-duplicates", title: "Remove Duplicates", blurb: "Unique prefix of a sorted array (#26).", icon: "filter_alt", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "majority-element", title: "Majority Element", blurb: "Boyer–Moore voting (#169).", icon: "how_to_vote", complexity: { time: "O(n)", space: "O(1)" } },
+      ],
+    },
   ],
 };
 
@@ -181,6 +197,19 @@ const linkedList: SectionMeta = {
       icon: "refresh",
       status: "available",
       leaves: listTypeLeaves(),
+    },
+    {
+      slug: "classic-problems",
+      title: "Classic Problems",
+      blurb: "Must-know LeetCode list problems — pointer surgery and the tortoise & hare.",
+      icon: "code",
+      status: "available",
+      leaves: [
+        { slug: "reverse-list", title: "Reverse a List", blurb: "Flip every next pointer (#206).", icon: "swap_horiz", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "find-middle", title: "Middle of the List", blurb: "Tortoise & hare midpoint (#876).", icon: "align_horizontal_center", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "remove-nth-end", title: "Remove Nth From End", blurb: "Two pointers with a gap of n (#19).", icon: "last_page", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "palindrome-list", title: "Palindrome List", blurb: "Compare the list with its reverse (#234).", icon: "compare_arrows", complexity: { time: "O(n)", space: "O(1)" } },
+      ],
     },
     {
       slug: "applications",
