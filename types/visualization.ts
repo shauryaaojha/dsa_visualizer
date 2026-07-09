@@ -218,6 +218,8 @@ export interface LLNode {
   state: LLNodeState;
   /** Optional display override (e.g. polynomial term "3x^2"). */
   label?: string;
+  /** Lifted out of the row: freshly allocated (not linked yet) or just freed. */
+  floating?: boolean;
 }
 
 /** A named cursor floating above a node (head, tail, curr, prev, …). */
@@ -236,6 +238,8 @@ export interface LLStep {
   pointers: LLPointer[];
   description: string;
   codeLines?: number[];
+  /** Ids of nodes whose outgoing pointer was rewired this frame ("HEAD" = the head box) — the canvas highlights those links. */
+  rewired?: string[];
 }
 
 export interface LLProgram {
@@ -263,3 +267,147 @@ export type LLOperationId =
   | "findMiddle"
   | "removeNthEnd"
   | "palindrome";
+
+// ---------------------------------------------------------------------------
+// Stack visualization
+//
+// A vertical container, open at the top. Two implementations share the frame
+// shape: "array" draws a fixed-capacity well with a numeric TOP index box;
+// "list" draws linked nodes ([data|next]) stacked top-down with a TOP address
+// box — push/pop animate pointer rewiring exactly like the linked-list canvas.
+// Applications add an input token strip, an output strip and verdict badges.
+// ---------------------------------------------------------------------------
+
+export type StackMode = "array" | "list";
+
+/** Shared cell state palette for stack/queue canvases (mirrors LLNodeState). */
+export type SQCellState =
+  | "idle"
+  | "active" // being read / compared
+  | "visited" // logically gone but still in memory (array pop leaves it stale)
+  | "new" // freshly pushed
+  | "removing" // being popped / rejected
+  | "target" // candidate during a scan
+  | "found"; // result / match
+
+export interface StackCell {
+  id: string;
+  /** Display text: "42", "(", "fact(3)", "a+b" … */
+  label: string;
+  /** Fake memory address — list mode only. */
+  addr?: string;
+  /** id of the cell *below* it (toward NULL) — list mode only. */
+  next?: string | null;
+  state: SQCellState;
+  /** Lifted out of the container: being pushed in or just popped/freed. */
+  floating?: boolean;
+  /** Small side annotation (e.g. "waiting for fact(2)", "returns 6"). */
+  note?: string;
+}
+
+/** A chip in the input / output strips of the application visualizers. */
+export interface TokenChip {
+  text: string;
+  state: "pending" | "active" | "done" | "matched" | "error";
+}
+
+export interface StackStep {
+  /** Bottom → top. In array mode stale cells above `top` may remain (dimmed). */
+  cells: StackCell[];
+  mode: StackMode;
+  /** Array mode: fixed slot count. */
+  capacity?: number;
+  /** Array mode: index stored in the TOP box (−1 = empty). */
+  top: number;
+  /** List mode: id of the node the TOP box points at (null = NULL). */
+  topId?: string | null;
+  /** Input strip (expressions / call script). */
+  tokens?: TokenChip[];
+  /** Output strip (infix → postfix). */
+  output?: TokenChip[];
+  message?: { text: string; tone: "ok" | "error" | "info" };
+  description: string;
+  codeLines?: number[];
+  /** Ids whose pointer changed this frame ("TOP" = the top box) — highlighted. */
+  rewired?: string[];
+}
+
+export interface StackProgram {
+  steps: StackStep[];
+  complexity: Complexity;
+  pseudocode: string[];
+  title: string;
+  mode: StackMode;
+}
+
+export type StackOperationId =
+  | "push"
+  | "pop"
+  | "peek"
+  | "overflowUnderflow"
+  | "llPush"
+  | "llPop"
+  | "llPeek"
+  | "balancedParens"
+  | "infixToPostfix"
+  | "postfixEval"
+  | "recursionStack";
+
+// ---------------------------------------------------------------------------
+// Queue visualization
+//
+// Layouts: "row" (simple queue / deque / priority-array — horizontal slots
+// with FRONT and REAR index boxes), "ring" (circular queue — slots on a
+// circle, modulo arithmetic narrated), "heap" (priority queue — implicit
+// binary tree drawn above its backing array, sift swaps animated by id).
+// ---------------------------------------------------------------------------
+
+export type QueueKind = "simple" | "circular" | "deque" | "pqArray" | "pqHeap";
+export type QueueLayout = "row" | "ring" | "heap";
+
+export interface QueueCell {
+  id: string;
+  label: string;
+  /** Priority queues: the priority badge. */
+  priority?: number;
+  state: SQCellState;
+  /** Lifted out of the row (arriving / leaving). */
+  floating?: boolean;
+}
+
+export interface QueueStep {
+  /** Fixed length for array/circular layouts (null = empty slot); dense for deque/heap. */
+  slots: (QueueCell | null)[];
+  /** Index stored in the FRONT box (−1 = empty queue). */
+  front: number;
+  /** Index stored in the REAR box (−1 = empty queue). */
+  rear: number;
+  layout: QueueLayout;
+  message?: { text: string; tone: "ok" | "error" | "info" };
+  description: string;
+  codeLines?: number[];
+  /** What changed this frame: "FRONT", "REAR", or a cell id — highlighted. */
+  rewired?: string[];
+}
+
+export interface QueueProgram {
+  steps: QueueStep[];
+  complexity: Complexity;
+  pseudocode: string[];
+  title: string;
+  kind: QueueKind;
+}
+
+export type QueueOperationId =
+  | "enqueue"
+  | "dequeue"
+  | "qPeek"
+  | "cEnqueue"
+  | "cDequeue"
+  | "cOverflow"
+  | "dqInsertFront"
+  | "dqInsertRear"
+  | "dqDeleteFront"
+  | "dqDeleteRear"
+  | "pqArrayDemo"
+  | "pqHeapDemo";

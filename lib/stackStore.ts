@@ -1,37 +1,41 @@
-// Linked-list player store (zustand). Mirrors visualizerStore: pure engine
-// compiles an LLProgram, this store plays it (play/pause/step/speed via a
+// Stack player store (zustand). Mirrors linkedListStore: the pure engine
+// compiles a StackProgram, this store plays it (play/pause/step/speed via a
 // self-scheduling timeout). The canvas renders the current frame.
 
 import { create } from "zustand";
-import { runLinkedListOperation, LL_OPERATIONS } from "@/engines/linkedListEngine";
-import type { LLKind, LLOperationId, LLProgram, LLStep } from "@/types/visualization";
+import { runStackOperation, STACK_OPERATIONS } from "@/engines/stackEngine";
+import type { StackOperationId, StackProgram, StackStep } from "@/types/visualization";
 
 const SPEED_OPTIONS = [0.5, 1, 1.5, 2, 4] as const;
 type Speed = (typeof SPEED_OPTIONS)[number];
-// Roomy per-frame delay: each frame is now a single pointer change with a
-// sentence of narration, so the viewer needs time to read + watch the link move.
+// Same roomy per-frame delay as the linked list: one pointer change + one
+// sentence of narration per frame.
 const BASE_DELAY = 1600;
 
-const DEFAULT_VALUES = [10, 20, 30, 40];
+const DEFAULT_VALUES = [10, 20, 30];
 
-interface LLState {
-  kind: LLKind;
-  operation: LLOperationId;
+interface StackParams {
+  value: number;
+  text: string;
+  capacity: number;
+}
+
+interface StackState {
+  operation: StackOperationId;
   values: number[];
-  params: { index: number; value: number };
-  program: LLProgram | null;
+  params: StackParams;
+  program: StackProgram | null;
   stepIndex: number;
   isPlaying: boolean;
   speed: Speed;
 
-  currentStep: () => LLStep | null;
+  currentStep: () => StackStep | null;
 
   setValues: (values: number[]) => void;
   randomize: (size?: number) => void;
-  setKind: (kind: LLKind) => void;
-  setOperation: (op: LLOperationId) => void;
-  setParams: (p: Partial<{ index: number; value: number }>) => void;
-  run: (op?: LLOperationId, params?: Partial<{ index: number; value: number }>) => void;
+  setOperation: (op: StackOperationId) => void;
+  setParams: (p: Partial<StackParams>) => void;
+  run: (op?: StackOperationId, params?: Partial<StackParams>) => void;
 
   play: () => void;
   pause: () => void;
@@ -51,7 +55,7 @@ function clearT() {
   }
 }
 
-export const useLinkedListStore = create<LLState>((set, get) => {
+export const useStackStore = create<StackState>((set, get) => {
   function scheduleTick() {
     clearT();
     const { isPlaying, program, speed } = get();
@@ -71,10 +75,9 @@ export const useLinkedListStore = create<LLState>((set, get) => {
   }
 
   return {
-    kind: "singly",
-    operation: "traverse",
+    operation: "push",
     values: DEFAULT_VALUES,
-    params: { index: 1, value: 25 },
+    params: { value: 42, text: "", capacity: 6 },
     program: null,
     stepIndex: 0,
     isPlaying: false,
@@ -88,15 +91,11 @@ export const useLinkedListStore = create<LLState>((set, get) => {
 
     setValues: (values) => {
       clearT();
-      set({ values: values.slice(0, 12), program: null, stepIndex: 0, isPlaying: false });
+      set({ values: values.slice(0, 10), program: null, stepIndex: 0, isPlaying: false });
     },
-    randomize: (size = 5) => {
+    randomize: (size = 3) => {
       const values = Array.from({ length: size }, () => Math.floor(Math.random() * 90) + 10);
       get().setValues(values);
-    },
-    setKind: (kind) => {
-      clearT();
-      set({ kind, program: null, stepIndex: 0, isPlaying: false });
     },
     setOperation: (op) => {
       clearT();
@@ -109,7 +108,7 @@ export const useLinkedListStore = create<LLState>((set, get) => {
       const state = get();
       const operation = op ?? state.operation;
       const merged = { ...state.params, ...params };
-      const program = runLinkedListOperation(operation, state.kind, state.values, merged);
+      const program = runStackOperation(operation, state.values, merged);
       set({ operation, params: merged, program, stepIndex: 0, isPlaying: false });
       get().play();
     },
@@ -152,4 +151,4 @@ export const useLinkedListStore = create<LLState>((set, get) => {
   };
 });
 
-export { LL_OPERATIONS, SPEED_OPTIONS };
+export { STACK_OPERATIONS, SPEED_OPTIONS };

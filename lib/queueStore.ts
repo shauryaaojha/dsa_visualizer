@@ -1,37 +1,40 @@
-// Linked-list player store (zustand). Mirrors visualizerStore: pure engine
-// compiles an LLProgram, this store plays it (play/pause/step/speed via a
-// self-scheduling timeout). The canvas renders the current frame.
+// Queue player store (zustand). Mirrors linkedListStore/stackStore: the pure
+// engine compiles a QueueProgram, this store plays it frame by frame.
 
 import { create } from "zustand";
-import { runLinkedListOperation, LL_OPERATIONS } from "@/engines/linkedListEngine";
-import type { LLKind, LLOperationId, LLProgram, LLStep } from "@/types/visualization";
+import { runQueueOperation, QUEUE_OPERATIONS } from "@/engines/queueEngine";
+import type { QueueKind, QueueOperationId, QueueProgram, QueueStep } from "@/types/visualization";
 
 const SPEED_OPTIONS = [0.5, 1, 1.5, 2, 4] as const;
 type Speed = (typeof SPEED_OPTIONS)[number];
-// Roomy per-frame delay: each frame is now a single pointer change with a
-// sentence of narration, so the viewer needs time to read + watch the link move.
 const BASE_DELAY = 1600;
 
 const DEFAULT_VALUES = [10, 20, 30, 40];
 
-interface LLState {
-  kind: LLKind;
-  operation: LLOperationId;
+interface QueueParams {
+  value: number;
+  priority: number;
+  capacity: number;
+}
+
+interface QueueState {
+  kind: QueueKind;
+  operation: QueueOperationId;
   values: number[];
-  params: { index: number; value: number };
-  program: LLProgram | null;
+  params: QueueParams;
+  program: QueueProgram | null;
   stepIndex: number;
   isPlaying: boolean;
   speed: Speed;
 
-  currentStep: () => LLStep | null;
+  currentStep: () => QueueStep | null;
 
   setValues: (values: number[]) => void;
   randomize: (size?: number) => void;
-  setKind: (kind: LLKind) => void;
-  setOperation: (op: LLOperationId) => void;
-  setParams: (p: Partial<{ index: number; value: number }>) => void;
-  run: (op?: LLOperationId, params?: Partial<{ index: number; value: number }>) => void;
+  setKind: (kind: QueueKind) => void;
+  setOperation: (op: QueueOperationId) => void;
+  setParams: (p: Partial<QueueParams>) => void;
+  run: (op?: QueueOperationId, params?: Partial<QueueParams>) => void;
 
   play: () => void;
   pause: () => void;
@@ -51,7 +54,7 @@ function clearT() {
   }
 }
 
-export const useLinkedListStore = create<LLState>((set, get) => {
+export const useQueueStore = create<QueueState>((set, get) => {
   function scheduleTick() {
     clearT();
     const { isPlaying, program, speed } = get();
@@ -71,10 +74,10 @@ export const useLinkedListStore = create<LLState>((set, get) => {
   }
 
   return {
-    kind: "singly",
-    operation: "traverse",
+    kind: "simple",
+    operation: "enqueue",
     values: DEFAULT_VALUES,
-    params: { index: 1, value: 25 },
+    params: { value: 99, priority: 4, capacity: 6 },
     program: null,
     stepIndex: 0,
     isPlaying: false,
@@ -88,9 +91,9 @@ export const useLinkedListStore = create<LLState>((set, get) => {
 
     setValues: (values) => {
       clearT();
-      set({ values: values.slice(0, 12), program: null, stepIndex: 0, isPlaying: false });
+      set({ values: values.slice(0, 10), program: null, stepIndex: 0, isPlaying: false });
     },
-    randomize: (size = 5) => {
+    randomize: (size = 4) => {
       const values = Array.from({ length: size }, () => Math.floor(Math.random() * 90) + 10);
       get().setValues(values);
     },
@@ -109,7 +112,7 @@ export const useLinkedListStore = create<LLState>((set, get) => {
       const state = get();
       const operation = op ?? state.operation;
       const merged = { ...state.params, ...params };
-      const program = runLinkedListOperation(operation, state.kind, state.values, merged);
+      const program = runQueueOperation(operation, state.kind, state.values, merged);
       set({ operation, params: merged, program, stepIndex: 0, isPlaying: false });
       get().play();
     },
@@ -152,4 +155,4 @@ export const useLinkedListStore = create<LLState>((set, get) => {
   };
 });
 
-export { LL_OPERATIONS, SPEED_OPTIONS };
+export { QUEUE_OPERATIONS, SPEED_OPTIONS };

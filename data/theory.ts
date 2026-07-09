@@ -33,6 +33,8 @@ export function theoryKey(path: string): string {
     if (seg2.endsWith("-linked-list")) return "ll:" + parts.slice(3).join("/");
     return "ll:" + parts.slice(2).join("/");
   }
+  if (parts[1] === "stacks") return "st:" + parts.slice(2).join("/");
+  if (parts[1] === "queues") return "q:" + parts.slice(2).join("/");
   // arrays (and future sections): category/leaf
   return parts.slice(2).join("/");
 }
@@ -432,6 +434,246 @@ const THEORY: Record<string, TheoryDoc> = {
       s("Idea", "Find the middle (slow/fast), reverse the second half, then walk both halves inward comparing values. If every pair matches, it's a palindrome."),
       s("Space", "Comparing from both ends inward — as visualised here — captures the logic; the O(1) version does it by reversing the back half in place."),
       s("Courtesy", "Good implementations restore the reversed half before returning, leaving the list unchanged."),
+    ],
+  },
+
+  // --- Stacks · array implementation --------------------------------------
+  "st:array-implementation/push": {
+    title: "Stack Push (array)",
+    summary: "Increment top, then write the value into the freed slot.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "A stack is an array you agree to touch only at one end. `top` stores the index of the last value; pushing is `top++` followed by `stack[top] = value` — two O(1) steps."),
+      s("Order matters", "Increment first, then write. Writing first would overwrite the current top value."),
+      s("Guard", "Before anything, check `top == capacity − 1`. A push into a full stack is an overflow — the write would land outside the array."),
+    ],
+  },
+  "st:array-implementation/pop": {
+    title: "Stack Pop (array)",
+    summary: "Read stack[top], then decrement top — the value is abandoned, not erased.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "Pop reads the value at `top` and moves `top` down one. Nothing is deleted from memory — the slot merely stops being 'inside' the stack, and the next push overwrites it."),
+      s("Guard", "Check `top == −1` first: popping an empty stack is an underflow."),
+      s("LIFO", "Only the most recently pushed value is reachable. If you need anything deeper, you must pop everything above it first."),
+    ],
+  },
+  "st:array-implementation/peek": {
+    title: "Stack Peek",
+    summary: "Read the top value without changing the stack.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "`peek()` (or `top()`) returns `stack[top]` and moves nothing. It answers 'what would pop return?' without committing to it."),
+      s("Why it exists", "Algorithms like balanced-parentheses and shunting-yard constantly need to *inspect* the top before deciding whether to pop — peek makes that a safe read."),
+    ],
+  },
+  "st:array-implementation/overflow-underflow": {
+    title: "Overflow & Underflow",
+    summary: "The two boundary failures every fixed-size stack must guard against.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Overflow", "Pushing when `top == capacity − 1`. The array has no next slot, so an unchecked write corrupts whatever lives beyond it. This is literally the 'stack overflow' a runaway recursion causes."),
+      s("Underflow", "Popping when `top == −1`. There is no value to return; unchecked code would read garbage."),
+      s("Fixes", "Check before every push/pop, grow the array dynamically (amortised O(1)), or switch to a linked-list stack that only overflows when the heap does."),
+    ],
+  },
+
+  // --- Stacks · linked-list implementation --------------------------------
+  "st:linked-list-implementation/push": {
+    title: "Stack Push (linked list)",
+    summary: "Insert at the head: node.next = top, then top = node.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "Keep a single TOP pointer to the first node. Pushing allocates a node, points it at the current top, then redirects TOP — insert-at-head from the linked-list topic, wearing a stack costume."),
+      s("Order matters", "Wire `node.next = top` before `top = node`, or the old chain is lost."),
+      s("Trade-off", "No capacity limit and no wasted slots, at the cost of one heap allocation per push and pointer-chasing cache misses."),
+    ],
+  },
+  "st:linked-list-implementation/pop": {
+    title: "Stack Pop (linked list)",
+    summary: "top = top.next, then free the old node.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "Save a handle to the top node, redirect TOP to `top.next`, then free the saved node. Delete-at-head, exactly."),
+      s("Why save curr first", "After `top = top.next` nothing else references the old node — without the saved handle you could never free it (a leak in manual-memory languages)."),
+      s("Guard", "`top == NULL` is the empty case — underflow."),
+    ],
+  },
+  "st:linked-list-implementation/peek": {
+    title: "Stack Peek (linked list)",
+    summary: "Follow TOP one hop and read the data — no pointers change.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "`return top.data`. One pointer dereference, zero mutations."),
+      s("Contrast", "The array version reads `stack[top]` by index; the list version follows an address. Same contract, different memory model."),
+    ],
+  },
+
+  // --- Stacks · applications ----------------------------------------------
+  "st:applications/balanced-parentheses": {
+    title: "Balanced Parentheses",
+    summary: "Openers wait on the stack; every closer must match the most recent opener.",
+    complexity: { time: "O(n)", space: "O(n)" },
+    leetcode: "20. Valid Parentheses",
+    sections: [
+      s("Idea", "Scan once. Push every opener. On a closer, the top of the stack must be its partner — pop it; otherwise the brackets interleave illegally (like `([)]`)."),
+      s("Why a stack", "The 'most recent unclosed opener' is exactly the last thing pushed — LIFO is not a trick here, it IS the problem's structure."),
+      s("End condition", "Balanced requires the stack to be empty at the end: leftover openers (`((` …) were never closed."),
+    ],
+  },
+  "st:applications/infix-to-postfix": {
+    title: "Infix → Postfix",
+    summary: "Shunting-yard: operands stream out; operators wait on the stack by precedence.",
+    complexity: { time: "O(n)", space: "O(n)" },
+    sections: [
+      s("Idea", "Operands go straight to the output. An operator first pops any waiting operators of ≥ precedence (they must apply first), then pushes itself. '(' is a wall; ')' pops until the wall."),
+      s("Why postfix", "Postfix (RPN) needs no parentheses and no precedence rules to evaluate — the order of operations is baked into the token order, which is why compilers and calculators use it."),
+      s("Invariant", "Operators on the stack are always in strictly increasing precedence from bottom to top (walls excepted)."),
+    ],
+  },
+  "st:applications/postfix-evaluation": {
+    title: "Postfix Evaluation",
+    summary: "Numbers push; each operator pops two, computes, pushes one.",
+    complexity: { time: "O(n)", space: "O(n)" },
+    leetcode: "150. Evaluate Reverse Polish Notation",
+    sections: [
+      s("Idea", "Scan once. A number waits on the stack. An operator consumes the two most recent values — pop b, pop a (order matters for − and /), push a⊕b. At the end exactly one value remains: the answer."),
+      s("Why it works", "In postfix an operator always appears immediately after its two operands are complete — and 'the two most recent complete values' is precisely what LIFO hands you."),
+      s("Pairing", "This is the second half of infix→postfix: convert once, then evaluate any number of times in O(n)."),
+    ],
+  },
+  "st:applications/recursion-stack": {
+    title: "The Recursion Stack",
+    summary: "Every call pushes a frame; returns pop them in reverse order.",
+    complexity: { time: "O(n)", space: "O(n)" },
+    sections: [
+      s("Idea", "When `fact(4)` calls `fact(3)`, the machine pushes a frame holding fact(4)'s state and jumps. Frames pile up until the base case, then pop one by one as each call returns — the deepest call finishes first."),
+      s("Why LIFO", "A caller can only resume after its callee finishes: last called, first finished. The call stack is the reason 'stack overflow' is the name of a recursion bug."),
+      s("Consequence", "Recursion depth = stack space. Converting recursion to iteration usually means managing an explicit stack yourself — the same structure, made visible."),
+    ],
+  },
+
+  // --- Queues · simple queue ------------------------------------------------
+  "q:simple-queue/array-implementation/enqueue": {
+    title: "Enqueue (linear array)",
+    summary: "Join at the rear: rear++, then write queue[rear].",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "A queue touches both ends: items enter at REAR and leave at FRONT — first in, first out. Enqueue is `rear++` then `queue[rear] = value`."),
+      s("Guards", "`rear == capacity − 1` is overflow. On the very first enqueue, front joins in at 0."),
+      s("Fairness", "Nothing overtakes: a new item waits behind everything that arrived earlier — that fairness is the whole point of a queue."),
+    ],
+  },
+  "q:simple-queue/array-implementation/dequeue": {
+    title: "Dequeue (linear array)",
+    summary: "Serve the front: read queue[front], then front++ — and waste the slot.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "Read `queue[front]`, then move front one right. The served slot is never reused, because front never moves backwards."),
+      s("The flaw", "After enough dequeues the queue reports 'full' while its left side sits empty — a linear queue slowly abandons its own memory. Shifting every element left instead would make dequeue O(n)."),
+      s("The fix", "Let the indices wrap around with modulo arithmetic — the circular queue."),
+    ],
+  },
+  "q:simple-queue/array-implementation/peek": {
+    title: "Queue Peek",
+    summary: "Read the front value without removing it.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "`peek()` returns `queue[front]` — who gets served next — without moving any index."),
+      s("Symmetry", "The stack peeks at where things *enter*; the queue peeks at where things *leave*. Both are safe O(1) reads."),
+    ],
+  },
+
+  // --- Queues · circular queue ----------------------------------------------
+  "q:circular-queue/enqueue": {
+    title: "Enqueue (circular)",
+    summary: "rear = (rear + 1) % N — the index wraps, so freed slots are reused.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "Same array, smarter indices: `(rear + 1) % N` walks off the right edge and lands back at slot 0. The slots a linear queue would waste get recycled automatically."),
+      s("Full check", "Full is `(rear + 1) % N == front` — checked *before* moving rear, so rear never lands on front."),
+      s("Picture it", "Stop thinking 'row with a right edge'; think clock face. rear chases front around the dial."),
+    ],
+  },
+  "q:circular-queue/dequeue": {
+    title: "Dequeue (circular)",
+    summary: "Read queue[front], then front = (front + 1) % N.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "Serve `queue[front]`, then advance front around the ring. The freed slot is immediately available to the next enqueue — nothing is ever wasted."),
+      s("Last item", "When `front == rear` the queue holds one item; after serving it, reset both to −1 so the ring reads as empty rather than leaving the indices pointing at a ghost."),
+    ],
+  },
+  "q:circular-queue/overflow-condition": {
+    title: "The Ring Full Condition",
+    summary: "(rear + 1) % N == front — rear has wrapped around and caught front.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("The condition", "In a ring, 'full' can't be `rear == N − 1` (rear wraps past it all the time). Full is relative: REAR has chased FRONT the whole way around — the next slot rear would take is front's. That is `(rear + 1) % N == front`."),
+      s("The ambiguity", "The same relative position occurs when the ring is empty — so every implementation needs a way to tell the two apart. This one marks empty with `front == −1`, which lets all N slots fill."),
+      s("Alternatives", "Implementations that detect empty with `front == rear` must declare full one slot early — permanently sacrificing a slot. Others keep a `count` variable. All three are O(1); they just spend the disambiguation cost differently."),
+    ],
+  },
+
+  // --- Queues · deque ---------------------------------------------------------
+  "q:deque/insert-front": {
+    title: "Deque · Insert Front",
+    summary: "Add at the serving end — the operation a plain queue forbids.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "A deque (double-ended queue) opens both ends: this element cuts to the front of the line and will be served next."),
+      s("How it's O(1)", "With a doubly linked list, wire the new node before the old front; with a circular buffer, `front = (front − 1 + N) % N`. Either way, no shifting."),
+      s("Use case", "Sliding-window algorithms (e.g. window maximum) push and pop at both ends in one pass."),
+    ],
+  },
+  "q:deque/insert-rear": {
+    title: "Deque · Insert Rear",
+    summary: "Add at the back — identical to a normal enqueue.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "Exactly a queue's enqueue: the element joins behind everything else."),
+      s("Perspective", "Restrict a deque to insert-rear + delete-front and you have a queue; restrict it to one end only and you have a stack. The deque is the general case of both."),
+    ],
+  },
+  "q:deque/delete-front": {
+    title: "Deque · Delete Front",
+    summary: "Serve the front — identical to a normal dequeue.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "Remove and return the front element; FRONT moves to the next one."),
+      s("Guard", "An empty deque underflows — same check as every other variant."),
+    ],
+  },
+  "q:deque/delete-rear": {
+    title: "Deque · Delete Rear",
+    summary: "Remove from the back — take back the most recent arrival.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "Remove and return the rear element; REAR steps back to the previous one. A plain queue can never do this."),
+      s("Why it matters", "In the sliding-window-maximum trick, delete-rear evicts elements that can never be the maximum — the deque's signature move."),
+    ],
+  },
+
+  // --- Queues · priority queue -------------------------------------------------
+  "q:priority-queue/array-implementation": {
+    title: "Priority Queue (unsorted array)",
+    summary: "Enqueue appends in O(1); dequeue scans everything for the best priority — O(n).",
+    complexity: { time: "O(n)", space: "O(n)" },
+    sections: [
+      s("Idea", "Items carry a priority, and dequeue serves the highest priority, not the oldest. The unsorted-array version does zero work on insert and all the work on removal: scan for the max, remove it, close the gap."),
+      s("Mirror image", "A *sorted*-array version flips the costs: O(n) insert (find the spot, shift), O(1) removal. Either way, one operation pays O(n)."),
+      s("Motivation", "When n is large and both operations are frequent, O(n) hurts — that pressure is exactly what the binary heap resolves."),
+    ],
+  },
+  "q:priority-queue/heap-implementation": {
+    title: "Priority Queue (binary heap)",
+    summary: "A complete tree in an array: insert sifts up, extract sifts down — both O(log n).",
+    complexity: { time: "O(log n)", space: "O(n)" },
+    sections: [
+      s("Idea", "A max-heap is a complete binary tree where every parent ≥ its children, stored in a plain array: node i's children sit at 2i+1 and 2i+2 — no pointers needed. The maximum is always the root, at index 0."),
+      s("Insert", "Append at the end (keeps the tree complete), then *sift up*: swap with the parent while larger. At most one swap per level — O(log n)."),
+      s("Extract", "Take the root, move the last leaf into the hole, then *sift down*: swap with the larger child while smaller. Also O(log n)."),
+      s("Payoff", "Both operations logarithmic — the balance the array versions can't offer. Heaps power heapsort, Dijkstra, and every task scheduler worth the name."),
     ],
   },
 };

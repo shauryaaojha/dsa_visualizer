@@ -20,8 +20,8 @@ import type {
   LLStep,
 } from "@/types/visualization";
 
-// Pointer colors (match the shader accent palette).
-const C_HEAD = "#34C98A"; // mint
+// Pointer colors (match the shader accent palette). head lives in the HEAD
+// box drawn by the canvas (mint), not as a floating cursor.
 const C_TAIL = "#F5A623"; // amber
 const C_CURR = "#FF5F4A"; // coral
 const C_PREV = "#8ab4ff"; // soft blue
@@ -69,13 +69,12 @@ function buildBase(b: Builder, values: number[], labels?: string[]): void {
   rewire(b);
 }
 
-/** Assemble the floating cursors for a frame. */
+/** Assemble the floating cursors for a frame. (head lives in the HEAD box drawn by the canvas, not as a cursor.) */
 function ptrs(
   b: Builder,
   opts: { curr?: string | null; prev?: string | null } = {},
 ): LLPointer[] {
   const list: LLPointer[] = [];
-  if (b.headId) list.push({ label: "head", nodeId: b.headId, color: C_HEAD });
   if (b.tailId) list.push({ label: "tail", nodeId: b.tailId, color: C_TAIL });
   if (opts.prev !== undefined && opts.prev) list.push({ label: "prev", nodeId: opts.prev, color: C_PREV });
   if (opts.curr !== undefined && opts.curr) list.push({ label: "curr", nodeId: opts.curr, color: C_CURR });
@@ -97,6 +96,7 @@ function snapshot(
   pointers: LLPointer[],
   description: string,
   codeLines?: number[],
+  rewired?: string[],
 ): void {
   b.steps.push({
     nodes: b.nodes.map((n) => ({ ...n })), // immutable clone per frame
@@ -105,7 +105,12 @@ function snapshot(
     pointers,
     description,
     codeLines,
+    rewired,
   });
+}
+
+function nodeById(b: Builder, id: string | null | undefined): LLNode | undefined {
+  return id ? b.nodes.find((n) => n.id === id) : undefined;
 }
 
 function done(
@@ -179,51 +184,137 @@ function search(b: Builder, target: number): LLProgram {
 }
 
 // --- Insertion -------------------------------------------------------------
-
-const INSERT_PSEUDO = [
-  "node = new Node(value)",
-  "// wire node into the list",
-  "node.next = …",
-  "prev.next = node",
-  "fix head / tail",
-];
+// Insert/delete are compiled into many small frames so the user can watch each
+// pointer change happen: allocate (node floats above the row, unlinked) → wire
+// node.next → rewire the neighbour / HEAD box → node drops into the row.
+// Between the "allocate" and "drop in" frames we deliberately do NOT rewire();
+// each frame hand-edits exactly the pointer named by the highlighted pseudocode
+// line, so the arrows on the canvas break and re-form one at a time.
 
 function insertBegin(b: Builder, value: number): LLProgram {
-  snapshot(b, ptrs(b, { curr: b.headId }), `Insert ${value} at the beginning.`, [1]);
+  const pseudo =
+    b.kind === "doubly"
+      ? ["node = new Node(value)", "node.next = head", "head.prev = node", "head = node"]
+      : b.kind === "circular"
+        ? ["node = new Node(value)", "node.next = head", "tail.next = node", "head = node"]
+        : ["node = new Node(value)", "node.next = head", "head = node"];
+  const finish = () => done(b, `Insert at Begin (${b.kind})`, { time: "O(1)", space: "O(1)" }, pseudo);
+  const headLine = pseudo.length; // "head = node" is always the last line
+
+  const oldHead = b.nodes[0] ?? null;
+  snapshot(
+    b,
+    ptrs(b),
+    oldHead
+      ? `Insert ${value} at the beginning. The head box currently stores @${oldHead.addr} — the address of node ${oldHead.value}.`
+      : `Insert ${value} into an empty list. The head box stores NULL.`,
+    [],
+  );
+
+  // 1 — allocate: the node floats above the row, linked to nothing.
   const node = makeNode(b, value, undefined);
   node.state = "new";
-  b.nodes.unshift(node);
-  rewire(b);
-  snapshot(b, ptrs(b, { curr: node.id }), `New node ${value}.next → old head; head → new node.`, [2, 3, 4]);
+  node.floating = true;
+  node.next = null;
+  if (b.kind === "doubly") node.prev = null;
+  b.nodes.unshift(node); // takes visual slot 0, but no pointer touches it yet
+  snapshot(b, ptrs(b), `Allocate a new node at address @${node.addr} holding ${value}. Its next pointer is NULL — nothing links to it and it links to nothing.`, [1], [node.id]);
+
+  if (!oldHead) {
+    b.headId = node.id;
+    b.tailId = node.id;
+    node.floating = false;
+    rewire(b);
+    snapshot(b, ptrs(b), `head = node: the head box now stores @${node.addr}. The list has its first node.`, [headLine], ["HEAD"]);
+    node.state = "idle";
+    snapshot(b, ptrs(b), `${value} inserted — O(1).`, []);
+    return finish();
+  }
+
+  // 2 — node.next = head: the first new link forms.
+  node.next = oldHead.id;
+  snapshot(b, ptrs(b), `node.next = head: the new node's next cell copies the address out of the head box (@${oldHead.addr}), so it now points at ${oldHead.value}. Note: head itself still points at the old first node.`, [2], [node.id]);
+
+  if (b.kind === "doubly") {
+    oldHead.prev = node.id;
+    snapshot(b, ptrs(b), `head.prev = node: the old head's prev cell now stores @${node.addr} — the backward link is made.`, [3], [oldHead.id]);
+  }
+  if (b.kind === "circular") {
+    const tail = nodeById(b, b.tailId)!;
+    tail.next = node.id;
+    snapshot(b, ptrs(b), `tail.next = node: the tail's wrap-around link is re-routed from @${oldHead.addr} to @${node.addr}, so the circle will pass through the new node.`, [3], [tail.id]);
+  }
+
+  // 3 — head = node: the head box is overwritten; the node drops into the row.
+  b.headId = node.id;
+  node.floating = false;
+  snapshot(b, ptrs(b), `head = node: the head box is overwritten — @${oldHead.addr} is replaced by @${node.addr}. The new node drops into place as the first node.`, [headLine], ["HEAD"]);
+
   node.state = "idle";
-  snapshot(b, ptrs(b), `${value} is now the head.`, [5]);
-  return done(b, `Insert at Begin (${b.kind})`, { time: "O(1)", space: "O(1)" }, INSERT_PSEUDO);
+  rewire(b);
+  snapshot(b, ptrs(b), `${value} is now the head. No node had to move in memory — only pointers changed. O(1).`, []);
+  return finish();
 }
 
 function insertEnd(b: Builder, value: number): LLProgram {
   if (b.nodes.length === 0) return insertBegin(b, value);
-  // Walk to the tail.
-  let curr = b.headId;
-  let guard = 0;
-  while (curr && guard < b.nodes.length - 1) {
-    setState(b, curr, "visited");
-    snapshot(b, ptrs(b, { curr }), "Walk to the tail…", [1]);
-    curr = b.nodes.find((n) => n.id === curr)!.next;
-    guard++;
-  }
-  clearStates(b);
+  const circular = b.kind === "circular";
+  const pseudo = circular
+    ? ["node = new Node(value)", "curr = head", "while curr.next != head:", "  curr = curr.next", "curr.next = node", "node.next = head"]
+    : b.kind === "doubly"
+      ? ["node = new Node(value)", "curr = head", "while curr.next != NULL:", "  curr = curr.next", "curr.next = node", "node.prev = curr"]
+      : ["node = new Node(value)", "curr = head", "while curr.next != NULL:", "  curr = curr.next", "curr.next = node"];
+
+  const oldTail = nodeById(b, b.tailId)!;
+  const head = nodeById(b, b.headId)!;
+
+  snapshot(b, ptrs(b), `Insert ${value} at the end. Only head is stored, so we must walk node-to-node to reach the tail first.`, []);
+
+  // 1 — allocate: floats above the last slot, unlinked.
   const node = makeNode(b, value, undefined);
   node.state = "new";
+  node.floating = true;
+  node.next = null;
+  if (b.kind === "doubly") node.prev = null;
   b.nodes.push(node);
+  snapshot(b, ptrs(b), `Allocate a new node at @${node.addr} holding ${value}. It is not part of the list yet — its next is NULL.`, [1], [node.id]);
+
+  // 2 — walk curr to the tail.
+  let currId: string | null = b.headId;
+  snapshot(b, ptrs(b, { curr: currId }), `curr = head — start at ${head.value} (@${head.addr}).`, [2]);
+  while (currId && currId !== oldTail.id) {
+    const cn = nodeById(b, currId)!;
+    setState(b, currId, "visited");
+    const nx = nodeById(b, cn.next)!;
+    currId = cn.next;
+    snapshot(b, ptrs(b, { curr: currId }), `curr.next is @${nx.addr}, not ${circular ? "head" : "NULL"} — follow it: curr moves to ${nx.value}.`, [3, 4]);
+  }
+  clearStates(b);
+  node.state = "new";
+
+  // 3 — curr.next = node: the tail's pointer is overwritten.
+  oldTail.next = node.id;
+  snapshot(b, ptrs(b, { curr: oldTail.id }), circular
+    ? `curr is the tail. curr.next = node: the wrap-around link (@${head.addr}) is overwritten with @${node.addr} — the old link to head is broken.`
+    : `curr is the tail (next = NULL). curr.next = node: NULL is overwritten with @${node.addr} — a new link forms to the floating node.`, [5], [oldTail.id]);
+
+  if (b.kind === "doubly") {
+    node.prev = oldTail.id;
+    snapshot(b, ptrs(b, { curr: oldTail.id }), `node.prev = curr: the backward link stores @${oldTail.addr}.`, [6], [node.id]);
+  }
+  if (circular) {
+    node.next = b.headId;
+    snapshot(b, ptrs(b, { curr: oldTail.id }), `node.next = head: the new node wraps back to @${head.addr}, closing the circle again.`, [6], [node.id]);
+  }
+
+  // 4 — drop into the row as the new tail.
+  node.floating = false;
+  b.tailId = node.id;
   rewire(b);
-  const wireMsg =
-    b.kind === "circular"
-      ? `tail.next → new node; new node.next wraps back to head.`
-      : `tail.next → new node; new node.next → NULL.`;
-  snapshot(b, ptrs(b, { curr: node.id }), wireMsg, [3, 4, 5]);
+  snapshot(b, ptrs(b), `The node settles into place as the new tail${circular ? "" : "; its next stays NULL"}.`, [5], []);
   node.state = "idle";
-  snapshot(b, ptrs(b), `${value} appended at the end.`, [5]);
-  return done(b, `Insert at End (${b.kind})`, { time: "O(n)", space: "O(1)" }, INSERT_PSEUDO);
+  snapshot(b, ptrs(b), `${value} appended — O(n) to find the tail, O(1) to link.`, []);
+  return done(b, `Insert at End (${b.kind})`, { time: "O(n)", space: "O(1)" }, pseudo);
 }
 
 function insertPosition(b: Builder, pos: number, value: number): LLProgram {
@@ -231,99 +322,224 @@ function insertPosition(b: Builder, pos: number, value: number): LLProgram {
   if (pos <= 0 || n === 0) return insertBegin(b, value);
   if (pos >= n) return insertEnd(b, value);
 
-  snapshot(b, ptrs(b, { curr: b.headId }), `Insert ${value} at position ${pos}.`, [1]);
-  // Walk prev to index pos-1.
-  let prevId = b.headId;
-  for (let i = 0; i < pos - 1; i++) {
-    setState(b, prevId, "visited");
-    snapshot(b, ptrs(b, { prev: prevId, curr: b.nodes.find((x) => x.id === prevId)!.next }), `Advance to index ${i + 1}.`, [2]);
-    prevId = b.nodes.find((x) => x.id === prevId)!.next;
-  }
-  clearStates(b);
-  const idx = indexOfId(b, prevId);
+  const pseudo = [
+    "node = new Node(value)",
+    "prev = head",
+    "repeat (pos − 1) times:",
+    "  prev = prev.next",
+    "node.next = prev.next",
+    "prev.next = node",
+  ];
+
+  snapshot(b, ptrs(b), `Insert ${value} at position ${pos}: prev must stop on the node at position ${pos - 1}, because inserting needs the node *before* the gap.`, []);
+
+  // 1 — allocate: hovers above the gap it will fill.
   const node = makeNode(b, value, undefined);
   node.state = "new";
-  b.nodes.splice(idx + 1, 0, node);
+  node.floating = true;
+  node.next = null;
+  if (b.kind === "doubly") node.prev = null;
+  b.nodes.splice(pos, 0, node); // opens the visual gap; the wiring still skips it
+  snapshot(b, ptrs(b), `Allocate a new node at @${node.addr} holding ${value}. It hovers over the gap — no pointer touches it yet, and the list still links straight across.`, [1], [node.id]);
+
+  // 2 — walk prev to position pos-1.
+  let prevId: string | null = b.headId;
+  snapshot(b, ptrs(b, { prev: prevId }), `prev = head.`, [2]);
+  for (let i = 0; i < pos - 1; i++) {
+    setState(b, prevId, "visited");
+    prevId = nodeById(b, prevId)!.next;
+    snapshot(b, ptrs(b, { prev: prevId }), `Advance prev to position ${i + 1} (node ${nodeById(b, prevId)!.value}).`, [3, 4]);
+  }
+  clearStates(b);
+  node.state = "new";
+  const prev = nodeById(b, prevId)!;
+  const after = nodeById(b, prev.next)!;
+
+  // 3 — node.next = prev.next: link the new node first, so nothing is lost.
+  node.next = prev.next;
+  snapshot(b, ptrs(b, { prev: prevId }), `node.next = prev.next: the new node copies @${after.addr} into its next cell, so it points at ${after.value}. prev still links straight to ${after.value} — for a moment two arrows share the same target. Order matters: doing prev.next first would lose the rest of the list.`, [5], [node.id]);
+
+  // 4 — prev.next = node: the old link breaks, the new one forms.
+  prev.next = node.id;
+  snapshot(b, ptrs(b, { prev: prevId }), `prev.next = node: prev's next cell is overwritten — @${after.addr} is replaced by @${node.addr}. The old link is broken; the chain now flows through the new node.`, [6], [prev.id]);
+
+  if (b.kind === "doubly") {
+    node.prev = prev.id;
+    after.prev = node.id;
+    snapshot(b, ptrs(b, { prev: prevId }), `Fix the backward links: node.prev = @${prev.addr} and ${after.value}.prev = @${node.addr}.`, [6], [node.id, after.id]);
+  }
+
+  // 5 — drop into the row.
+  node.floating = false;
   rewire(b);
-  snapshot(b, ptrs(b, { prev: prevId, curr: node.id }), `node.next → prev.next; prev.next → node.`, [3, 4]);
+  snapshot(b, ptrs(b), `The node settles into position ${pos}.`, [6]);
   node.state = "idle";
-  snapshot(b, ptrs(b), `${value} inserted at position ${pos}.`, [5]);
-  return done(b, `Insert at Position (${b.kind})`, { time: "O(n)", space: "O(1)" }, INSERT_PSEUDO);
+  snapshot(b, ptrs(b), `${value} inserted at position ${pos} — O(n) walk + O(1) splice.`, []);
+  return done(b, `Insert at Position (${b.kind})`, { time: "O(n)", space: "O(1)" }, pseudo);
 }
 
 // --- Deletion --------------------------------------------------------------
 
-const DELETE_PSEUDO = [
-  "// find the node to remove",
-  "// re-route the pointer over it",
-  "prev.next = target.next",
-  "free(target)",
-  "fix head / tail",
-];
-
 function deleteBegin(b: Builder): LLProgram {
+  const pseudo =
+    b.kind === "doubly"
+      ? ["curr = head", "head = head.next", "head.prev = NULL", "free(curr)"]
+      : b.kind === "circular"
+        ? ["curr = head", "head = head.next", "tail.next = head", "free(curr)"]
+        : ["curr = head", "head = head.next", "free(curr)"];
+  const finish = () => done(b, `Delete at Begin (${b.kind})`, { time: "O(1)", space: "O(1)" }, pseudo);
+
   if (b.nodes.length === 0) {
     snapshot(b, ptrs(b), "List is empty — nothing to delete.", []);
-    return done(b, `Delete at Begin (${b.kind})`, { time: "O(1)", space: "O(1)" }, DELETE_PSEUDO);
+    return finish();
   }
-  setState(b, b.headId, "removing");
-  snapshot(b, ptrs(b, { curr: b.headId }), "Mark head for removal; head → head.next.", [1, 2]);
+  const old = b.nodes[0];
+  const newHead = b.nodes[1] ?? null;
+
+  snapshot(b, ptrs(b, { curr: old.id }), `curr = head: keep a handle on the first node (@${old.addr}) — once head moves on, this is the only way to reach it to free it.`, [1]);
+  old.state = "removing";
+  snapshot(b, ptrs(b, { curr: old.id }), `Node ${old.value} is marked for deletion.`, [1]);
+
+  // head = head.next: the head box is overwritten.
+  b.headId = newHead?.id ?? null;
+  snapshot(b, ptrs(b, { curr: old.id }), newHead
+    ? `head = head.next: the head box is overwritten — @${old.addr} is replaced by @${newHead.addr}. The old node still exists, but the list no longer reaches it.`
+    : `head = head.next: the head box becomes NULL — the list is about to be empty.`, [2], ["HEAD"]);
+
+  if (b.kind === "doubly" && newHead) {
+    newHead.prev = null;
+    snapshot(b, ptrs(b, { curr: old.id }), `head.prev = NULL: the new head has no predecessor any more.`, [3], [newHead.id]);
+  }
+  if (b.kind === "circular" && newHead) {
+    const tail = nodeById(b, b.tailId)!;
+    tail.next = newHead.id;
+    snapshot(b, ptrs(b, { curr: old.id }), `tail.next = head: the wrap-around link is re-routed from @${old.addr} to @${newHead.addr}, so the circle skips the old node.`, [3], [tail.id]);
+  }
+
+  // free(curr): detach visually, then reclaim.
+  old.floating = true;
+  old.next = null;
+  snapshot(b, ptrs(b, { curr: old.id }), `free(curr): the node is fully unlinked — its memory at @${old.addr} is released.`, [pseudo.length], [old.id]);
+
   b.nodes.shift();
   rewire(b);
-  snapshot(b, ptrs(b), b.nodes.length ? "Old head unlinked." : "List is now empty.", [3, 4, 5]);
-  return done(b, `Delete at Begin (${b.kind})`, { time: "O(1)", space: "O(1)" }, DELETE_PSEUDO);
+  snapshot(b, ptrs(b), b.nodes.length ? `Old head deleted; ${nodeById(b, b.headId)!.value} is the new head. Only pointers changed — O(1).` : "List is now empty.", []);
+  return finish();
 }
 
 function deleteEnd(b: Builder): LLProgram {
+  const circular = b.kind === "circular";
+  const pseudo = circular
+    ? ["prev = head", "while prev.next != tail:", "  prev = prev.next", "prev.next = head", "tail = prev", "free(old tail)"]
+    : ["prev = head", "while prev.next.next != NULL:", "  prev = prev.next", "prev.next = NULL", "tail = prev", "free(old tail)"];
+  const finish = () => done(b, `Delete at End (${b.kind})`, { time: "O(n)", space: "O(1)" }, pseudo);
+
   if (b.nodes.length === 0) {
     snapshot(b, ptrs(b), "List is empty — nothing to delete.", []);
-    return done(b, `Delete at End (${b.kind})`, { time: "O(n)", space: "O(1)" }, DELETE_PSEUDO);
+    return finish();
   }
   if (b.nodes.length === 1) return deleteBegin(b);
-  // Walk to second-last.
-  let curr = b.headId;
-  for (let i = 0; i < b.nodes.length - 2; i++) {
-    setState(b, curr, "visited");
-    snapshot(b, ptrs(b, { curr }), "Walk to the node before the tail…", [1]);
-    curr = b.nodes.find((n) => n.id === curr)!.next;
+
+  const oldTail = b.nodes[b.nodes.length - 1];
+  const newTail = b.nodes[b.nodes.length - 2];
+
+  snapshot(b, ptrs(b), `Delete the tail (${oldTail.value}). The tail cannot unlink itself — we need prev, the node just before it, to break the link.`, []);
+
+  let prevId: string | null = b.headId;
+  snapshot(b, ptrs(b, { prev: prevId }), `prev = head.`, [1]);
+  while (prevId && prevId !== newTail.id) {
+    setState(b, prevId, "visited");
+    prevId = nodeById(b, prevId)!.next;
+    snapshot(b, ptrs(b, { prev: prevId }), `Not at the second-to-last node yet — advance prev to ${nodeById(b, prevId)!.value}.`, [2, 3]);
   }
   clearStates(b);
-  setState(b, b.tailId, "removing");
-  snapshot(b, ptrs(b, { prev: curr, curr: b.tailId }), "Mark tail for removal; prev.next → NULL.", [2, 3]);
+  oldTail.state = "removing";
+  snapshot(b, ptrs(b, { prev: prevId }), `prev now sits just before the tail. Node ${oldTail.value} (@${oldTail.addr}) is marked for deletion.`, [2, 3]);
+
+  // Break the link into the old tail.
+  newTail.next = circular ? b.headId : null;
+  b.tailId = newTail.id;
+  snapshot(b, ptrs(b, { prev: prevId }), circular
+    ? `prev.next = head: prev's next cell is overwritten — @${oldTail.addr} is replaced by @${nodeById(b, b.headId)!.addr}. The circle now closes before the old tail; nothing reaches it any more. tail = prev.`
+    : `prev.next = NULL: prev's next cell is overwritten — @${oldTail.addr} is replaced by NULL. The link into the old tail is broken. tail = prev.`, [4, 5], [newTail.id]);
+
+  oldTail.floating = true;
+  oldTail.next = null;
+  snapshot(b, ptrs(b), `free(old tail): the node detaches and its memory at @${oldTail.addr} is released.`, [6], [oldTail.id]);
+
   b.nodes.pop();
   rewire(b);
-  snapshot(b, ptrs(b), "Tail unlinked.", [4, 5]);
-  return done(b, `Delete at End (${b.kind})`, { time: "O(n)", space: "O(1)" }, DELETE_PSEUDO);
+  snapshot(b, ptrs(b), `Tail deleted — ${newTail.value} is the new tail.`, []);
+  return finish();
 }
 
 function deletePosition(b: Builder, pos: number): LLProgram {
   const n = b.nodes.length;
   if (n === 0) {
     snapshot(b, ptrs(b), "List is empty — nothing to delete.", []);
-    return done(b, `Delete at Position (${b.kind})`, { time: "O(n)", space: "O(1)" }, DELETE_PSEUDO);
+    return done(b, `Delete at Position (${b.kind})`, { time: "O(n)", space: "O(1)" }, [
+      "prev = head",
+      "repeat (pos − 1) times:",
+      "  prev = prev.next",
+      "target = prev.next",
+      "prev.next = target.next",
+      "free(target)",
+    ]);
   }
   if (pos <= 0) return deleteBegin(b);
-  if (pos >= n - 1) return pos >= n ? deleteEnd(b) : deleteAt(b, pos);
+  if (pos >= n) return deleteEnd(b);
   return deleteAt(b, pos);
 }
 
 function deleteAt(b: Builder, pos: number): LLProgram {
-  snapshot(b, ptrs(b, { curr: b.headId }), `Delete the node at position ${pos}.`, [1]);
-  let prevId = b.headId;
+  const pseudo = [
+    "prev = head",
+    "repeat (pos − 1) times:",
+    "  prev = prev.next",
+    "target = prev.next",
+    "prev.next = target.next",
+    "free(target)",
+  ];
+
+  snapshot(b, ptrs(b), `Delete the node at position ${pos}. As with insertion, we need prev — the node *before* the target — because only prev can re-route its link.`, []);
+
+  let prevId: string | null = b.headId;
+  snapshot(b, ptrs(b, { prev: prevId }), `prev = head.`, [1]);
   for (let i = 0; i < pos - 1; i++) {
     setState(b, prevId, "visited");
-    snapshot(b, ptrs(b, { prev: prevId, curr: b.nodes.find((x) => x.id === prevId)!.next }), `Advance to index ${i + 1}.`, [1]);
-    prevId = b.nodes.find((x) => x.id === prevId)!.next;
+    prevId = nodeById(b, prevId)!.next;
+    snapshot(b, ptrs(b, { prev: prevId }), `Advance prev to position ${i + 1} (node ${nodeById(b, prevId)!.value}).`, [2, 3]);
   }
-  const targetId = b.nodes.find((x) => x.id === prevId)!.next;
   clearStates(b);
-  setState(b, targetId, "removing");
-  snapshot(b, ptrs(b, { prev: prevId, curr: targetId }), "prev.next → target.next (route over the target).", [2, 3]);
-  const idx = indexOfId(b, targetId);
+
+  const prev = nodeById(b, prevId)!;
+  const target = nodeById(b, prev.next)!;
+  const after = nodeById(b, target.next); // circular tail-target: after = head (the wrap)
+
+  target.state = "removing";
+  snapshot(b, ptrs(b, { prev: prevId, curr: target.id }), `target = prev.next: the node to delete is ${target.value} at @${target.addr}.`, [4]);
+
+  // prev.next = target.next: the bypass link forms; the target is skipped.
+  prev.next = target.next;
+  if (target.id === b.tailId) b.tailId = prev.id;
+  snapshot(b, ptrs(b, { prev: prevId, curr: target.id }), after
+    ? `prev.next = target.next: prev's next cell is overwritten — @${target.addr} is replaced by @${after.addr}. The list now routes *around* the target; its own next pointer still exists but nothing follows it.`
+    : `prev.next = target.next: prev's next cell is overwritten — the list now ends (or wraps) before the target. Nothing reaches it any more.`, [5], [prev.id]);
+
+  if (b.kind === "doubly" && after) {
+    after.prev = prev.id;
+    snapshot(b, ptrs(b, { prev: prevId, curr: target.id }), `Fix the backward link: ${after.value}.prev now stores @${prev.addr}, skipping the target.`, [5], [after.id]);
+  }
+
+  target.floating = true;
+  target.next = null;
+  snapshot(b, ptrs(b, { prev: prevId }), `free(target): the node detaches and its memory at @${target.addr} is released.`, [6], [target.id]);
+
+  const idx = indexOfId(b, target.id);
   b.nodes.splice(idx, 1);
   rewire(b);
-  snapshot(b, ptrs(b), `Node at position ${pos} removed.`, [4, 5]);
-  return done(b, `Delete at Position (${b.kind})`, { time: "O(n)", space: "O(1)" }, DELETE_PSEUDO);
+  snapshot(b, ptrs(b), `Node at position ${pos} deleted — the remaining nodes close the gap (visually; in memory nothing moved).`, []);
+  return done(b, `Delete at Position (${b.kind})`, { time: "O(n)", space: "O(1)" }, pseudo);
 }
 
 // --- Applications ----------------------------------------------------------

@@ -225,6 +225,124 @@ const linkedList: SectionMeta = {
   ],
 };
 
+// --- Stacks (fully built) ----------------------------------------------------
+
+const stacks: SectionMeta = {
+  slug: "stacks",
+  title: "Stacks",
+  blurb: "LIFO discipline: everything enters and leaves through the top.",
+  icon: "stacked_bar_chart",
+  status: "available",
+  categories: [
+    {
+      slug: "array-implementation",
+      title: "Array Implementation",
+      blurb: "A fixed well of slots plus a top index — fast but bounded.",
+      icon: "data_array",
+      status: "available",
+      leaves: [
+        { slug: "push", title: "Push", blurb: "top++, then write at stack[top].", icon: "add_box", complexity: { time: "O(1)", space: "O(1)" } },
+        { slug: "pop", title: "Pop", blurb: "Read stack[top], then top−−.", icon: "remove", complexity: { time: "O(1)", space: "O(1)" } },
+        { slug: "peek", title: "Peek", blurb: "Read the top without removing it.", icon: "visibility", complexity: { time: "O(1)", space: "O(1)" } },
+        { slug: "overflow-underflow", title: "Overflow & Underflow", blurb: "The two boundary failures of a fixed stack.", icon: "warning", complexity: { time: "O(1)", space: "O(1)" } },
+      ],
+    },
+    {
+      slug: "linked-list-implementation",
+      title: "Linked List Implementation",
+      blurb: "Push/pop at the head — no capacity limit, one allocation per push.",
+      icon: "link",
+      status: "available",
+      leaves: [
+        { slug: "push", title: "Push", blurb: "node.next = top; top = node.", icon: "add_box", complexity: { time: "O(1)", space: "O(1)" } },
+        { slug: "pop", title: "Pop", blurb: "top = top.next; free the old node.", icon: "remove", complexity: { time: "O(1)", space: "O(1)" } },
+        { slug: "peek", title: "Peek", blurb: "Follow TOP and read — nothing changes.", icon: "visibility", complexity: { time: "O(1)", space: "O(1)" } },
+      ],
+    },
+    {
+      slug: "applications",
+      title: "Applications",
+      blurb: "Where LIFO does real work — parsing, evaluation and the call stack.",
+      icon: "extension",
+      status: "available",
+      leaves: [
+        { slug: "balanced-parentheses", title: "Balanced Parentheses", blurb: "Openers wait; each closer must match the top.", icon: "data_object", complexity: { time: "O(n)", space: "O(n)" } },
+        { slug: "infix-to-postfix", title: "Infix → Postfix", blurb: "Shunting-yard: operators wait by precedence.", icon: "swap_horiz", complexity: { time: "O(n)", space: "O(n)" } },
+        { slug: "postfix-evaluation", title: "Postfix Evaluation", blurb: "Numbers push; operators pop two, push one.", icon: "calculate", complexity: { time: "O(n)", space: "O(n)" } },
+        { slug: "recursion-stack", title: "Recursion Stack", blurb: "Call frames wind up, then unwind — fact(n).", icon: "layers", complexity: { time: "O(n)", space: "O(n)" } },
+      ],
+    },
+  ],
+};
+
+// --- Queues (fully built) ----------------------------------------------------
+
+const queues: SectionMeta = {
+  slug: "queues",
+  title: "Queues",
+  blurb: "FIFO and its variants: linear, circular, deque and priority.",
+  icon: "queue",
+  status: "available",
+  categories: [
+    {
+      slug: "simple-queue",
+      title: "Simple Queue",
+      blurb: "A linear array with front and rear indices — and a wasteful flaw.",
+      icon: "east",
+      status: "available",
+      leaves: [
+        {
+          slug: "array-implementation",
+          title: "Array Implementation",
+          blurb: "Enqueue at the rear, dequeue at the front.",
+          icon: "data_array",
+          children: [
+            { slug: "enqueue", title: "Enqueue", blurb: "rear++, then write at queue[rear].", icon: "login", complexity: { time: "O(1)", space: "O(1)" } },
+            { slug: "dequeue", title: "Dequeue", blurb: "Read queue[front], then front++.", icon: "logout", complexity: { time: "O(1)", space: "O(1)" } },
+            { slug: "peek", title: "Peek", blurb: "Read the front without removing it.", icon: "visibility", complexity: { time: "O(1)", space: "O(1)" } },
+          ],
+        },
+      ],
+    },
+    {
+      slug: "circular-queue",
+      title: "Circular Queue",
+      blurb: "Indices wrap with % N, so freed slots are reused — nothing wasted.",
+      icon: "refresh",
+      status: "available",
+      leaves: [
+        { slug: "enqueue", title: "Enqueue", blurb: "rear = (rear + 1) % N, then write.", icon: "login", complexity: { time: "O(1)", space: "O(1)" } },
+        { slug: "dequeue", title: "Dequeue", blurb: "Read, then front = (front + 1) % N.", icon: "logout", complexity: { time: "O(1)", space: "O(1)" } },
+        { slug: "overflow-condition", title: "Overflow Condition", blurb: "(rear + 1) % N == front — why one slot stays empty.", icon: "warning", complexity: { time: "O(1)", space: "O(1)" } },
+      ],
+    },
+    {
+      slug: "deque",
+      title: "Deque",
+      blurb: "Double-ended: insert and delete at both the front and the rear.",
+      icon: "sync_alt",
+      status: "available",
+      leaves: [
+        { slug: "insert-front", title: "Insert Front", blurb: "The op a plain queue forbids.", icon: "first_page", complexity: { time: "O(1)", space: "O(1)" } },
+        { slug: "insert-rear", title: "Insert Rear", blurb: "Same as a normal enqueue.", icon: "last_page", complexity: { time: "O(1)", space: "O(1)" } },
+        { slug: "delete-front", title: "Delete Front", blurb: "Same as a normal dequeue.", icon: "backspace", complexity: { time: "O(1)", space: "O(1)" } },
+        { slug: "delete-rear", title: "Delete Rear", blurb: "Remove from the back — deque only.", icon: "cancel", complexity: { time: "O(1)", space: "O(1)" } },
+      ],
+    },
+    {
+      slug: "priority-queue",
+      title: "Priority Queue",
+      blurb: "Serve by priority, not arrival — unsorted array vs binary heap.",
+      icon: "low_priority",
+      status: "available",
+      leaves: [
+        { slug: "array-implementation", title: "Array Implementation", blurb: "Append O(1); dequeue scans for the max — O(n).", icon: "data_array", complexity: { time: "O(n)", space: "O(n)" } },
+        { slug: "heap-implementation", title: "Heap Implementation", blurb: "Sift-up on insert, sift-down on extract — O(log n).", icon: "park", complexity: { time: "O(log n)", space: "O(n)" } },
+      ],
+    },
+  ],
+};
+
 // --- Other sections (folders exist; pages built later) ---------------------
 
 const soon = (
@@ -238,8 +356,8 @@ export const SECTIONS: SectionMeta[] = [
   soon("foundations", "Foundations", "school", "Asymptotics, complexity classes and the math behind analysis."),
   arrays,
   linkedList,
-  soon("stacks", "Stacks", "stacked_bar_chart", "LIFO discipline and its classic applications."),
-  soon("queues", "Queues", "queue", "FIFO, circular, deque and priority variants."),
+  stacks,
+  queues,
   soon("trees", "Trees", "account_tree", "Binary, BST, AVL, heaps and tries."),
   soon("graphs", "Graphs", "hub", "Representation, traversal, shortest paths and MSTs."),
   soon("hashing", "Hashing", "tag", "Hash tables and collision resolution."),
