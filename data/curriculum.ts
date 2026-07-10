@@ -343,6 +343,171 @@ const queues: SectionMeta = {
   ],
 };
 
+// --- Trees (fully built) -----------------------------------------------------
+
+const trees: SectionMeta = {
+  slug: "trees",
+  title: "Trees",
+  blurb: "Hierarchy: binary trees, BSTs, self-balancing AVL, heaps and tries.",
+  icon: "account_tree",
+  status: "available",
+  categories: [
+    {
+      slug: "binary-tree",
+      title: "Binary Tree",
+      blurb: "At most two children per node — the shape every other tree refines.",
+      icon: "account_tree",
+      status: "available",
+      leaves: [
+        {
+          slug: "traversal",
+          title: "Traversal",
+          blurb: "Four ways to visit every node exactly once.",
+          icon: "swap_horiz",
+          children: [
+            { slug: "inorder", title: "In-order", blurb: "Left → Node → Right.", icon: "swap_horiz", complexity: { time: "O(n)", space: "O(h)" } },
+            { slug: "preorder", title: "Pre-order", blurb: "Node → Left → Right.", icon: "first_page", complexity: { time: "O(n)", space: "O(h)" } },
+            { slug: "postorder", title: "Post-order", blurb: "Left → Right → Node.", icon: "last_page", complexity: { time: "O(n)", space: "O(h)" } },
+            { slug: "level-order", title: "Level Order", blurb: "Top → bottom with a queue.", icon: "reorder", complexity: { time: "O(n)", space: "O(n)" } },
+          ],
+        },
+        { slug: "insertion", title: "Insertion", blurb: "Fill the first free spot, level by level.", icon: "add_box", complexity: { time: "O(n)", space: "O(n)" } },
+        { slug: "deletion", title: "Deletion", blurb: "Swap with the deepest node, then remove it.", icon: "delete", complexity: { time: "O(n)", space: "O(n)" } },
+      ],
+    },
+    {
+      slug: "binary-search-tree",
+      title: "Binary Search Tree",
+      blurb: "left < node < right — half the tree eliminated per comparison.",
+      icon: "search",
+      status: "available",
+      leaves: [
+        { slug: "traversal", title: "Traversal", blurb: "In-order yields sorted output.", icon: "swap_horiz", complexity: { time: "O(n)", space: "O(h)" } },
+        { slug: "search", title: "Search", blurb: "Walk left/right by comparison — O(h).", icon: "search", complexity: { time: "O(h)", space: "O(1)" } },
+        { slug: "insertion", title: "Insertion", blurb: "Attach at the NULL where the search fails.", icon: "add_box", complexity: { time: "O(h)", space: "O(1)" } },
+        { slug: "deletion", title: "Deletion", blurb: "Leaf, one child, or two (in-order successor).", icon: "delete", complexity: { time: "O(h)", space: "O(1)" } },
+      ],
+    },
+    {
+      slug: "avl-tree",
+      title: "AVL Tree",
+      blurb: "A BST that rotates itself back into balance — |bf| ≤ 1 everywhere.",
+      icon: "balance",
+      status: "available",
+      leaves: [
+        { slug: "insertion", title: "Insertion", blurb: "BST insert, then rotate the first ±2 node.", icon: "add_box", complexity: { time: "O(log n)", space: "O(log n)" } },
+        { slug: "deletion", title: "Deletion", blurb: "BST delete, then rebalance the whole path.", icon: "delete", complexity: { time: "O(log n)", space: "O(log n)" } },
+        {
+          slug: "rotations",
+          title: "Rotations",
+          blurb: "The four imbalance cases and their fixes.",
+          icon: "rotate_right",
+          children: [
+            { slug: "ll-rotation", title: "LL Rotation", blurb: "Left-left → one right rotation.", icon: "rotate_right", complexity: { time: "O(1)", space: "O(1)" } },
+            { slug: "rr-rotation", title: "RR Rotation", blurb: "Right-right → one left rotation.", icon: "rotate_left", complexity: { time: "O(1)", space: "O(1)" } },
+            { slug: "lr-rotation", title: "LR Rotation", blurb: "Zig-zag: rotate child, then pivot.", icon: "sync", complexity: { time: "O(1)", space: "O(1)" } },
+            { slug: "rl-rotation", title: "RL Rotation", blurb: "Zig-zag: rotate child, then pivot.", icon: "sync", complexity: { time: "O(1)", space: "O(1)" } },
+          ],
+        },
+      ],
+    },
+    {
+      slug: "heaps",
+      title: "Heaps",
+      blurb: "A complete tree in an array — the max always at the root.",
+      icon: "park",
+      status: "available",
+      leaves: [
+        { slug: "insert", title: "Insert", blurb: "Append at the end, sift up.", icon: "add_box", complexity: { time: "O(log n)", space: "O(1)" } },
+        { slug: "delete", title: "Delete", blurb: "Take the root; last leaf sifts down.", icon: "remove", complexity: { time: "O(log n)", space: "O(1)" } },
+        { slug: "heapify", title: "Heapify", blurb: "Bottom-up build of a heap — O(n).", icon: "construction", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "heap-sort", title: "Heap Sort", blurb: "Extract max n times → sorted.", icon: "sort", complexity: { time: "O(n log n)", space: "O(1)" } },
+      ],
+    },
+    {
+      slug: "trie",
+      title: "Trie",
+      blurb: "Words as letter-paths; shared prefixes share nodes.",
+      icon: "spellcheck",
+      status: "available",
+      leaves: [
+        { slug: "insert", title: "Insert", blurb: "Create the letter path; ring the end.", icon: "add_box", complexity: { time: "O(L)", space: "O(L)" } },
+        { slug: "search", title: "Search", blurb: "Follow letters; found ⇔ end ring.", icon: "search", complexity: { time: "O(L)", space: "O(1)" } },
+        { slug: "delete", title: "Delete", blurb: "Un-ring, then prune unused letters.", icon: "delete", complexity: { time: "O(L)", space: "O(1)" } },
+      ],
+    },
+  ],
+};
+
+// --- Graphs (fully built) ----------------------------------------------------
+
+const graphs: SectionMeta = {
+  slug: "graphs",
+  title: "Graphs",
+  blurb: "Nodes and edges: representation, traversal, shortest paths, MSTs.",
+  icon: "hub",
+  status: "available",
+  categories: [
+    {
+      slug: "graph-representation",
+      title: "Representation",
+      blurb: "How a graph lives in memory: matrix vs list.",
+      icon: "grid_on",
+      status: "available",
+      leaves: [
+        { slug: "adjacency-matrix", title: "Adjacency Matrix", blurb: "V×V grid — O(1) lookup, O(V²) space.", icon: "grid_on", complexity: { time: "O(1)", space: "O(V²)" } },
+        { slug: "adjacency-list", title: "Adjacency List", blurb: "Neighbour lists — O(V+E) space.", icon: "list", complexity: { time: "O(deg)", space: "O(V+E)" } },
+      ],
+    },
+    {
+      slug: "traversal",
+      title: "Traversal",
+      blurb: "Visit every reachable node — in rings (BFS) or by diving deep (DFS).",
+      icon: "explore",
+      status: "available",
+      leaves: [
+        { slug: "bfs", title: "Breadth-First Search", blurb: "Queue-driven, level by level.", icon: "waves", complexity: { time: "O(V+E)", space: "O(V)" } },
+        { slug: "dfs", title: "Depth-First Search", blurb: "Dive deep, backtrack when stuck.", icon: "south", complexity: { time: "O(V+E)", space: "O(V)" } },
+      ],
+    },
+    {
+      slug: "shortest-path",
+      title: "Shortest Path",
+      blurb: "Cheapest routes: greedy, brute-force, and all-pairs.",
+      icon: "route",
+      status: "available",
+      leaves: [
+        { slug: "dijkstra", title: "Dijkstra", blurb: "Lock in the closest node, relax its edges.", icon: "route", complexity: { time: "O((V+E) log V)", space: "O(V)" } },
+        { slug: "bellman-ford", title: "Bellman–Ford", blurb: "Relax all edges V−1 times; handles negatives.", icon: "sync_problem", complexity: { time: "O(V·E)", space: "O(V)" } },
+        { slug: "floyd-warshall", title: "Floyd–Warshall", blurb: "All pairs, one matrix, three loops.", icon: "grid_4x4", complexity: { time: "O(V³)", space: "O(V²)" } },
+      ],
+    },
+    {
+      slug: "minimum-spanning-tree",
+      title: "Minimum Spanning Tree",
+      blurb: "Connect everything at minimum total cost.",
+      icon: "park",
+      status: "available",
+      leaves: [
+        { slug: "prims", title: "Prim's Algorithm", blurb: "Grow one tree by the cheapest crossing edge.", icon: "park", complexity: { time: "O(E log V)", space: "O(V)" } },
+        { slug: "kruskal", title: "Kruskal's Algorithm", blurb: "Cheapest edges first; skip cycle-closers.", icon: "sort", complexity: { time: "O(E log E)", space: "O(V)" } },
+      ],
+    },
+    {
+      slug: "connectivity",
+      title: "Connectivity",
+      blurb: "Weak points and strong groups: bridges, cut vertices, SCCs.",
+      icon: "share",
+      status: "available",
+      leaves: [
+        { slug: "bridges", title: "Bridges", blurb: "Edges whose removal splits the graph.", icon: "remove_road", complexity: { time: "O(V+E)", space: "O(V)" } },
+        { slug: "articulation-points", title: "Articulation Points", blurb: "Nodes whose removal splits the graph.", icon: "hub", complexity: { time: "O(V+E)", space: "O(V)" } },
+        { slug: "strongly-connected-components", title: "Strongly Connected Components", blurb: "Kosaraju: DFS, transpose, DFS again.", icon: "workspaces", complexity: { time: "O(V+E)", space: "O(V)" } },
+      ],
+    },
+  ],
+};
+
 // --- Other sections (folders exist; pages built later) ---------------------
 
 const soon = (
@@ -358,8 +523,8 @@ export const SECTIONS: SectionMeta[] = [
   linkedList,
   stacks,
   queues,
-  soon("trees", "Trees", "account_tree", "Binary, BST, AVL, heaps and tries."),
-  soon("graphs", "Graphs", "hub", "Representation, traversal, shortest paths and MSTs."),
+  trees,
+  graphs,
   soon("hashing", "Hashing", "tag", "Hash tables and collision resolution."),
   soon("strings", "Strings", "title", "String operations and pattern matching."),
 ];

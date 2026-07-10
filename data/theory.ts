@@ -35,6 +35,8 @@ export function theoryKey(path: string): string {
   }
   if (parts[1] === "stacks") return "st:" + parts.slice(2).join("/");
   if (parts[1] === "queues") return "q:" + parts.slice(2).join("/");
+  if (parts[1] === "trees") return "tr:" + parts.slice(2).join("/");
+  if (parts[1] === "graphs") return "g:" + parts.slice(2).join("/");
   // arrays (and future sections): category/leaf
   return parts.slice(2).join("/");
 }
@@ -674,6 +676,356 @@ const THEORY: Record<string, TheoryDoc> = {
       s("Insert", "Append at the end (keeps the tree complete), then *sift up*: swap with the parent while larger. At most one swap per level — O(log n)."),
       s("Extract", "Take the root, move the last leaf into the hole, then *sift down*: swap with the larger child while smaller. Also O(log n)."),
       s("Payoff", "Both operations logarithmic — the balance the array versions can't offer. Heaps power heapsort, Dijkstra, and every task scheduler worth the name."),
+    ],
+  },
+
+  // --- Trees · binary tree ---------------------------------------------------
+  "tr:binary-tree/traversal/inorder": {
+    title: "In-order Traversal",
+    summary: "Left subtree → node → right subtree, recursively.",
+    complexity: { time: "O(n)", space: "O(h)" },
+    sections: [
+      s("Idea", "Visit the node BETWEEN its two subtrees: fully explore the left, visit, then the right. The recursion pauses at every node until its left side is done — the call stack remembers where to resume."),
+      s("Why it matters", "On a binary SEARCH tree, in-order visits values in ascending order — 'in-order' literally means 'in sorted order' there."),
+      s("Space", "O(h) for the recursion stack: the deepest chain of paused calls is one root-to-leaf path."),
+    ],
+  },
+  "tr:binary-tree/traversal/preorder": {
+    title: "Pre-order Traversal",
+    summary: "Node first, then left subtree, then right subtree.",
+    complexity: { time: "O(n)", space: "O(h)" },
+    sections: [
+      s("Idea", "Visit the node BEFORE its subtrees. The root is always first — you meet each node on the way down."),
+      s("Use cases", "Copying a tree (parents must exist before children), serializing it, or printing a directory tree — anything that needs 'container before contents'."),
+    ],
+  },
+  "tr:binary-tree/traversal/postorder": {
+    title: "Post-order Traversal",
+    summary: "Both subtrees first, node last.",
+    complexity: { time: "O(n)", space: "O(h)" },
+    sections: [
+      s("Idea", "Visit the node AFTER its subtrees — you meet each node on the way back up. The root is always last."),
+      s("Use cases", "Deleting a tree (children must be freed before the parent), computing sizes/heights, evaluating expression trees — anything where a node's answer depends on its children's answers."),
+    ],
+  },
+  "tr:binary-tree/traversal/level-order": {
+    title: "Level Order Traversal",
+    summary: "Top to bottom, left to right — driven by a queue, not recursion.",
+    complexity: { time: "O(n)", space: "O(n)" },
+    sections: [
+      s("Idea", "Enqueue the root; repeatedly dequeue a node, visit it, and enqueue its children. FIFO guarantees the whole of level k is served before any of level k+1."),
+      s("BFS connection", "This is exactly breadth-first search on a tree — compare with the graphs section."),
+      s("Space", "The queue can hold an entire level: up to n/2 nodes on the last level of a complete tree, so O(n)."),
+    ],
+  },
+  "tr:binary-tree/insertion": {
+    title: "Binary Tree Insertion",
+    summary: "No ordering rule — fill the first empty spot, level by level.",
+    complexity: { time: "O(n)", space: "O(n)" },
+    sections: [
+      s("Idea", "A plain binary tree has no value ordering, so 'insert' just means keeping the shape compact: scan in level order and attach at the first node missing a child."),
+      s("Contrast", "In a BST the VALUE decides the position; here the SHAPE does. Comparing the two insertions is the fastest way to understand what the BST rule buys."),
+    ],
+  },
+  "tr:binary-tree/deletion": {
+    title: "Binary Tree Deletion",
+    summary: "Overwrite the target with the deepest node's value, then remove that deepest node.",
+    complexity: { time: "O(n)", space: "O(n)" },
+    sections: [
+      s("Idea", "Removing an internal node would orphan its children. Trick: copy the DEEPEST, right-most node's value over the target, then delete that deepest node — the only node whose removal can't leave a hole."),
+      s("Why deepest", "The deepest-last position is the exact mirror of where insertion adds — delete undoes insert, keeping the tree compact."),
+    ],
+  },
+
+  // --- Trees · BST -------------------------------------------------------------
+  "tr:binary-search-tree/traversal": {
+    title: "BST Traversal",
+    summary: "In-order on a BST visits values in sorted order — guaranteed.",
+    complexity: { time: "O(n)", space: "O(h)" },
+    sections: [
+      s("Idea", "Since left < node < right everywhere, 'left subtree, then node, then right subtree' visits everything smaller, then the node, then everything bigger — i.e., ascending order."),
+      s("Consequence", "Need the k-th smallest? Sorted output? Validation that a tree IS a BST? All are one in-order walk."),
+    ],
+  },
+  "tr:binary-search-tree/search": {
+    title: "BST Search",
+    summary: "One comparison per level — half the tree discarded each time.",
+    complexity: { time: "O(h)", space: "O(1)" },
+    sections: [
+      s("Idea", "Compare the key with the current node: equal → found; smaller → the key can only live in the LEFT subtree; bigger → only the RIGHT. Each step discards an entire subtree unseen."),
+      s("Binary search connection", "This is binary search wearing a tree costume — same halving, same logarithmic cost."),
+      s("The catch", "O(h), not O(log n): insert sorted data into a BST and it degenerates into a linked list with h = n. That failure mode is exactly why AVL trees exist."),
+    ],
+  },
+  "tr:binary-search-tree/insertion": {
+    title: "BST Insertion",
+    summary: "Search for the value; attach it at the NULL where the search fails.",
+    complexity: { time: "O(h)", space: "O(1)" },
+    sections: [
+      s("Idea", "Walk down comparing, exactly like a search. When you hit a NULL, that is by construction the one place the value can legally live — attach it there as a leaf."),
+      s("Invariant", "Every comparison made on the way down remains true forever; no existing node moves."),
+    ],
+  },
+  "tr:binary-search-tree/deletion": {
+    title: "BST Deletion",
+    summary: "Three cases: leaf, one child, or two children (in-order successor).",
+    complexity: { time: "O(h)", space: "O(1)" },
+    sections: [
+      s("Leaf", "Nothing depends on it — remove it."),
+      s("One child", "The parent adopts the child; the whole subtree slides up. Order is preserved because the subtree was already on the correct side."),
+      s("Two children", "Replace the node's VALUE with its in-order successor (leftmost of the right subtree) — the smallest value bigger than it, which fits between both subtrees. Then delete the successor, which has at most one child."),
+    ],
+  },
+
+  // --- Trees · AVL --------------------------------------------------------------
+  "tr:avl-tree/insertion": {
+    title: "AVL Insertion",
+    summary: "BST insert, then walk up and rotate the first node with |bf| = 2.",
+    complexity: { time: "O(log n)", space: "O(log n)" },
+    sections: [
+      s("Balance factor", "bf = height(left) − height(right). The AVL invariant is |bf| ≤ 1 at every node — it caps the tree's height at ~1.44·log n."),
+      s("After inserting", "Only the ancestors of the new node can have changed height. Walk up; the FIRST node to hit ±2 gets rotated, and a single (possibly double) rotation fixes the entire tree."),
+      s("The four cases", "Which grandchild subtree got the new node — LL, RR (straight lines → single rotation) or LR, RL (zig-zags → double rotation)."),
+    ],
+  },
+  "tr:avl-tree/deletion": {
+    title: "AVL Deletion",
+    summary: "BST delete, then rebalance — possibly at several levels.",
+    complexity: { time: "O(log n)", space: "O(log n)" },
+    sections: [
+      s("Idea", "Delete BST-style (the three cases), then climb toward the root checking balance factors."),
+      s("The difference from insert", "An insertion needs at most ONE rotation fix; a deletion can shorten a subtree and unbalance ancestors repeatedly — rotations may cascade up to the root, though each is O(1)."),
+    ],
+  },
+  "tr:avl-tree/rotations/ll-rotation": {
+    title: "LL Rotation",
+    summary: "Left-left imbalance → one right rotation.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("When", "The insert landed in the LEFT subtree of the pivot's LEFT child: bf(pivot) = +2 and the child leans left (a straight line of three)."),
+      s("The move", "Right-rotate the pivot: the left child rises to the pivot's place, the pivot becomes its RIGHT child, and the child's old right subtree crosses over to become the pivot's new left subtree — order preserved, height fixed."),
+    ],
+  },
+  "tr:avl-tree/rotations/rr-rotation": {
+    title: "RR Rotation",
+    summary: "Right-right imbalance → one left rotation.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("When", "The insert landed in the RIGHT subtree of the pivot's RIGHT child: bf(pivot) = −2, child leaning right — the mirror image of LL."),
+      s("The move", "Left-rotate the pivot: the right child rises, the pivot drops to its left, and the child's old left subtree crosses over to the pivot's right."),
+    ],
+  },
+  "tr:avl-tree/rotations/lr-rotation": {
+    title: "LR Rotation",
+    summary: "Left-right zig-zag → rotate the child left, then the pivot right.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("When", "The insert landed in the RIGHT subtree of the pivot's LEFT child — the path bends (a zig-zag), so a single rotation would just bend it the other way."),
+      s("The move", "First LEFT-rotate the child, straightening the zig-zag into an LL line; then RIGHT-rotate the pivot as usual. The grandchild ends up on top."),
+    ],
+  },
+  "tr:avl-tree/rotations/rl-rotation": {
+    title: "RL Rotation",
+    summary: "Right-left zig-zag → rotate the child right, then the pivot left.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("When", "The insert landed in the LEFT subtree of the pivot's RIGHT child — the mirror zig-zag of LR."),
+      s("The move", "RIGHT-rotate the child (zig-zag → RR line), then LEFT-rotate the pivot. Again the grandchild becomes the new subtree root."),
+    ],
+  },
+
+  // --- Trees · heaps --------------------------------------------------------------
+  "tr:heaps/insert": {
+    title: "Heap Insert",
+    summary: "Append at the next free leaf, then sift up while it beats its parent.",
+    complexity: { time: "O(log n)", space: "O(1)" },
+    sections: [
+      s("Two invariants", "SHAPE: the tree is complete (that's why it fits in an array with children at 2i+1, 2i+2). RULE: parent ≥ children. Insert satisfies shape first, then repairs the rule."),
+      s("Sift up", "Compare with the parent at (i−1)/2; swap while bigger. One swap per level max — O(log n)."),
+    ],
+  },
+  "tr:heaps/delete": {
+    title: "Heap Delete (extract max)",
+    summary: "Take the root; move the last leaf up; sift it down.",
+    complexity: { time: "O(log n)", space: "O(1)" },
+    sections: [
+      s("Idea", "The max is always the root. Removing it leaves a hole that only the LAST leaf can fill without breaking the complete shape — so move it up, then sift down, always swapping with the LARGER child."),
+      s("Why the larger child", "The new parent must beat BOTH children; promoting the larger one guarantees it beats the smaller sibling too."),
+    ],
+  },
+  "tr:heaps/heapify": {
+    title: "Heapify (build heap)",
+    summary: "Sift-down every parent, bottom-up — O(n) total, not O(n log n).",
+    complexity: { time: "O(n)", space: "O(1)" },
+    sections: [
+      s("Idea", "Leaves are already 1-node heaps. Walk parents from the last one back to the root, sift-down each — every subtree becomes a heap by the time you reach it."),
+      s("Why O(n)", "Half the nodes are leaves (sift 0 levels), a quarter sift ≤1 level, an eighth ≤2… the series sums to O(n). Inserting n items one-by-one would cost O(n log n)."),
+    ],
+  },
+  "tr:heaps/heap-sort": {
+    title: "Heap Sort",
+    summary: "Heapify, then repeatedly swap the max to the end and shrink the heap.",
+    complexity: { time: "O(n log n)", space: "O(1)" },
+    sections: [
+      s("Idea", "The root is the max — swap it with the last heap element so it lands in its FINAL sorted position, shrink the heap by one, sift the new root down. Repeat."),
+      s("Character", "In place (no extra array like merge sort) and O(n log n) even in the worst case (unlike quick sort). The price: poor cache behaviour, so quick sort usually wins in practice."),
+    ],
+  },
+
+  // --- Trees · trie ---------------------------------------------------------------
+  "tr:trie/insert": {
+    title: "Trie Insert",
+    summary: "Walk the word's letters, creating missing nodes; mark the end.",
+    complexity: { time: "O(L)", space: "O(L)" },
+    sections: [
+      s("Idea", "A trie stores words as root-to-node PATHS, one letter per edge. Insert follows existing letters (shared prefixes cost nothing) and creates nodes only where the path is missing."),
+      s("End marker", "The final node gets an end-of-word flag (the ring). Without it, 'car' inserted along the way to 'card' would be indistinguishable from a mere prefix."),
+    ],
+  },
+  "tr:trie/search": {
+    title: "Trie Search",
+    summary: "Follow the letter path; found ⇔ the path exists AND ends on a ring.",
+    complexity: { time: "O(L)", space: "O(1)" },
+    sections: [
+      s("Idea", "Cost is O(word length) — completely independent of how many words are stored. A million-word dictionary answers 'car?' in 3 steps."),
+      s("The gotcha", "A path can exist without the word being stored: 'car' is a prefix of 'card'. FOUND requires the end ring — the difference between search() and startsWith()."),
+    ],
+  },
+  "tr:trie/delete": {
+    title: "Trie Delete",
+    summary: "Un-mark the end ring, then prune letters no other word needs.",
+    complexity: { time: "O(L)", space: "O(1)" },
+    sections: [
+      s("Idea", "First just remove the end flag — the word is gone. Then climb back up deleting nodes that now have no children and no ring."),
+      s("Stop condition", "Stop at the first node that still serves another word (has children or its own ring) — shared prefixes must survive."),
+    ],
+  },
+
+  // --- Graphs · representation --------------------------------------------------
+  "g:graph-representation/adjacency-matrix": {
+    title: "Adjacency Matrix",
+    summary: "A V×V grid of 0/1 — O(1) edge lookup, O(V²) space.",
+    complexity: { time: "O(1)", space: "O(V²)" },
+    sections: [
+      s("Idea", "Cell [u][v] answers 'is there an edge u→v?' instantly. Undirected graphs fill two mirrored cells per edge; weighted graphs store the weight instead of 1."),
+      s("Cost", "V² cells exist whether or not edges do. A 10,000-node graph burns 100M cells even with 20k edges."),
+      s("When to use", "Dense graphs, or algorithms that constantly ask 'are u and v adjacent?' — e.g. Floyd–Warshall works directly on this matrix."),
+    ],
+  },
+  "g:graph-representation/adjacency-list": {
+    title: "Adjacency List",
+    summary: "Each vertex keeps a list of its actual neighbours — O(V+E) space.",
+    complexity: { time: "O(deg)", space: "O(V+E)" },
+    sections: [
+      s("Idea", "Store only the edges that exist. Scanning a node's neighbours costs O(degree), not O(V)."),
+      s("Why it wins", "Real graphs are sparse (E ≪ V²): social networks, road maps, the web. BFS/DFS run in O(V+E) precisely because the list never shows them a non-edge."),
+      s("Trade-off", "'Is u adjacent to v?' needs a list scan — the one query the matrix answers faster."),
+    ],
+  },
+
+  // --- Graphs · traversal ----------------------------------------------------------
+  "g:traversal/bfs": {
+    title: "Breadth-First Search",
+    summary: "A queue explores the graph in rings — fewest-edge paths guaranteed.",
+    complexity: { time: "O(V+E)", space: "O(V)" },
+    sections: [
+      s("Idea", "Visit the start, then everything 1 edge away, then 2… A FIFO queue enforces this: newly found nodes wait behind everything discovered earlier."),
+      s("Shortest paths", "The first time BFS reaches a node is via a minimum-edge path — BFS IS the shortest-path algorithm for unweighted graphs."),
+      s("Mark on discovery", "Nodes are marked when ENQUEUED, not dequeued — otherwise the same node enters the queue twice."),
+    ],
+  },
+  "g:traversal/dfs": {
+    title: "Depth-First Search",
+    summary: "Dive down one path as far as possible; backtrack when stuck.",
+    complexity: { time: "O(V+E)", space: "O(V)" },
+    sections: [
+      s("Idea", "From each node, recurse into the first unvisited neighbour immediately. The call stack remembers the way back — when a branch is exhausted, control returns (backtracks) and tries the next neighbour."),
+      s("Character", "One long winding path with backtracks, versus BFS's rings. Same O(V+E), completely different discovery order."),
+      s("Why it matters", "DFS's structure (discovery/finish times, tree vs back edges) powers cycle detection, topological sort, bridges, articulation points and SCCs."),
+    ],
+  },
+
+  // --- Graphs · shortest path -------------------------------------------------------
+  "g:shortest-path/dijkstra": {
+    title: "Dijkstra's Algorithm",
+    summary: "Repeatedly finalize the closest unfinished node and relax its edges.",
+    complexity: { time: "O((V+E) log V)", space: "O(V)" },
+    sections: [
+      s("Idea", "Keep the best-known distance to every node. The UNFINISHED node with the smallest distance can never be improved (any other route would already start longer) — lock it in, then relax its outgoing edges: dist[v] = min(dist[v], dist[u] + w)."),
+      s("The catch", "That 'can never be improved' argument requires non-negative weights. One negative edge and the greedy lock-in is wrong — that's Bellman–Ford's job."),
+      s("In practice", "A priority queue picks the minimum in O(log V); with it, Dijkstra is the workhorse of GPS routing."),
+    ],
+  },
+  "g:shortest-path/bellman-ford": {
+    title: "Bellman–Ford",
+    summary: "Relax every edge, V−1 times — slower, but negative edges are fine.",
+    complexity: { time: "O(V·E)", space: "O(V)" },
+    sections: [
+      s("Idea", "No greedy choice — just sweep across ALL edges relaxing them, V−1 times. Pass k guarantees all shortest paths of ≤ k edges are correct; no shortest path has more than V−1 edges."),
+      s("Negative cycle test", "Run one EXTRA pass: if anything still improves, a negative cycle exists and 'shortest' is undefined (you could loop forever getting cheaper)."),
+      s("Early exit", "If a whole pass changes nothing, distances have converged — stop early."),
+    ],
+  },
+  "g:shortest-path/floyd-warshall": {
+    title: "Floyd–Warshall",
+    summary: "All-pairs shortest paths: for each via-node k, try i→k→j for every pair.",
+    complexity: { time: "O(V³)", space: "O(V²)" },
+    sections: [
+      s("Idea", "Work on the distance MATRIX. The outer loop adds one allowed 'via' node at a time: after processing k, dist[i][j] is optimal among paths using only the first k nodes as stops. dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])."),
+      s("When", "You need EVERY pair's distance (routing tables, transitive closure) and V is modest — three clean nested loops, no priority queues, negatives fine (no negative cycles)."),
+    ],
+  },
+
+  // --- Graphs · MST -------------------------------------------------------------------
+  "g:minimum-spanning-tree/prims": {
+    title: "Prim's Algorithm",
+    summary: "Grow a single tree, always adding the cheapest edge that reaches a new node.",
+    complexity: { time: "O(E log V)", space: "O(V)" },
+    sections: [
+      s("Idea", "Start anywhere. At each step, of all edges crossing from the tree to a non-tree node, take the cheapest. key[v] tracks the cheapest known edge connecting v to the growing tree — exactly Dijkstra's shape with edge weight instead of path length."),
+      s("Why greedy works", "The cut property: the cheapest edge crossing any cut between tree and non-tree MUST belong to some MST — so every greedy pick is safe."),
+    ],
+  },
+  "g:minimum-spanning-tree/kruskal": {
+    title: "Kruskal's Algorithm",
+    summary: "Sort edges by weight; take each unless it closes a cycle.",
+    complexity: { time: "O(E log E)", space: "O(V)" },
+    sections: [
+      s("Idea", "Process edges cheapest-first. An edge whose endpoints are already in the same component would close a cycle — skip it; otherwise take it and merge the two components. Stop at V−1 edges."),
+      s("Union-Find", "'Same component?' is answered by a disjoint-set structure in near-O(1) — in the visualization, components are colors and merging is repainting."),
+      s("Prim vs Kruskal", "Same MST cost, different growth: Prim grows one tree outward; Kruskal grows a forest that coalesces."),
+    ],
+  },
+
+  // --- Graphs · connectivity ------------------------------------------------------------
+  "g:connectivity/bridges": {
+    title: "Bridges",
+    summary: "Edges whose removal disconnects the graph — found by one DFS with disc/low.",
+    complexity: { time: "O(V+E)", space: "O(V)" },
+    sections: [
+      s("disc and low", "disc[u] = when DFS first reached u. low[u] = the OLDEST (smallest disc) node reachable from u's subtree using at most one back edge — 'how far back up can this subtree escape?'"),
+      s("The test", "For a tree edge u–v: if low[v] > disc[u], then v's subtree has NO route back above u except this edge — cutting it splits the graph. That edge is a bridge."),
+      s("Why it matters", "Bridges are the weak links of a network: single cables/roads whose failure partitions it."),
+    ],
+  },
+  "g:connectivity/articulation-points": {
+    title: "Articulation Points",
+    summary: "Nodes whose removal disconnects the graph — same disc/low DFS.",
+    complexity: { time: "O(V+E)", space: "O(V)" },
+    sections: [
+      s("The test", "Non-root u is a cut vertex if SOME child v has low[v] ≥ disc[u] — v's subtree cannot escape above u, so removing u strands it. Note ≥ here versus > for bridges: reaching back exactly to u still dies with u."),
+      s("The root case", "The DFS root has no 'above' — it is a cut vertex simply if it has two or more separate DFS children."),
+      s("Bridges vs points", "A bridge's endpoints are usually cut vertices, but cut vertices can exist without any bridge (two cycles sharing one node)."),
+    ],
+  },
+  "g:connectivity/strongly-connected-components": {
+    title: "Strongly Connected Components",
+    summary: "Kosaraju: DFS for finish order, transpose, DFS again — each tree is one SCC.",
+    complexity: { time: "O(V+E)", space: "O(V)" },
+    sections: [
+      s("Definition", "In a DIRECTED graph, an SCC is a maximal set where every node reaches every other following the arrows — cycles and everything tangled with them."),
+      s("The trick", "Reversing every edge leaves SCCs intact (a cycle reversed is still a cycle) but flips the one-way roads BETWEEN components. A DFS on the transpose, started from the latest-finishing node, is fenced inside exactly one SCC."),
+      s("Why finish order", "The node finishing last in pass 1 lies in a 'source' component of the condensation — starting pass 2 there guarantees we peel components off in a safe order."),
     ],
   },
 };

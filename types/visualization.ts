@@ -411,3 +411,153 @@ export type QueueOperationId =
   | "dqDeleteRear"
   | "pqArrayDemo"
   | "pqHeapDemo";
+
+// ---------------------------------------------------------------------------
+// Tree visualization
+//
+// Nodes are circles laid out by the engine on a small grid (x = in-order
+// position or heap-level position, y = depth) — the canvas just scales the
+// grid to pixels. Because layout is recomputed every frame and nodes keep
+// stable ids, ANY structure change (insert, delete, AVL rotation) renders as
+// nodes gliding to their new places. Traversals carry an output strip and a
+// live call-stack / queue strip; AVL nodes carry balance-factor badges.
+// ---------------------------------------------------------------------------
+
+export interface TreeVNode {
+  id: string;
+  label: string;
+  /** Grid coords: x in [0, gridW], y = depth. */
+  x: number;
+  y: number;
+  state: SQCellState;
+  /** Small badge under the node (balance factor "bf −1", heap index, disc/low). */
+  badge?: string;
+  /** Cursor tag above the node ("curr", "succ", "min"…). */
+  tag?: string;
+  /** Double ring (trie end-of-word marker). */
+  ring?: boolean;
+}
+
+export interface TreeVEdge {
+  from: string;
+  to: string;
+  state: "idle" | "active" | "new" | "removing";
+}
+
+export interface TreesStep {
+  nodes: TreeVNode[];
+  edges: TreeVEdge[];
+  gridW: number;
+  gridH: number;
+  /** Visit-order / sorted-output strip. */
+  output?: { label: string; chips: TokenChip[] };
+  /** Auxiliary structure strip (call stack, queue, backing array). */
+  aux?: { label: string; chips: TokenChip[] };
+  message?: { text: string; tone: "ok" | "error" | "info" };
+  description: string;
+  codeLines?: number[];
+}
+
+export interface TreesProgram {
+  steps: TreesStep[];
+  complexity: Complexity;
+  pseudocode: string[];
+  title: string;
+}
+
+export type TreesOperationId =
+  | "btInorder"
+  | "btPreorder"
+  | "btPostorder"
+  | "btLevelOrder"
+  | "btInsert"
+  | "btDelete"
+  | "bstTraversal"
+  | "bstSearch"
+  | "bstInsert"
+  | "bstDelete"
+  | "avlInsert"
+  | "avlDelete"
+  | "avlRotLL"
+  | "avlRotRR"
+  | "avlRotLR"
+  | "avlRotRL"
+  | "heapInsert"
+  | "heapDelete"
+  | "heapify"
+  | "heapSort"
+  | "trieInsert"
+  | "trieSearch"
+  | "trieDelete";
+
+// ---------------------------------------------------------------------------
+// Graph visualization
+//
+// Preset graphs with hand-placed normalized coordinates (0–100), curated per
+// algorithm for beginner clarity. Frames carry the node/edge states plus an
+// optional data table (dist/key tables, adjacency matrix) and a strip (BFS
+// queue, DFS stack, sorted edge list, finish order). Node `group` colors
+// connected components (Kruskal's union-find, SCCs).
+// ---------------------------------------------------------------------------
+
+export interface GraphVNode {
+  id: string;
+  label: string;
+  /** Normalized coords 0–100. */
+  x: number;
+  y: number;
+  state: SQCellState;
+  /** Badge under the node (dist, disc/low…). */
+  badge?: string;
+  /** Component index — canvas maps it to a hue (union-find / SCC). */
+  group?: number;
+  /** Ring highlight (articulation point). */
+  ring?: boolean;
+}
+
+export interface GraphVEdge {
+  id: string;
+  from: string;
+  to: string;
+  weight?: number;
+  directed?: boolean;
+  state: "idle" | "active" | "tree" | "rejected" | "special";
+}
+
+export interface GraphTableCell {
+  text: string;
+  state?: "idle" | "changed" | "final" | "head";
+}
+
+export interface GraphStep {
+  nodes: GraphVNode[];
+  edges: GraphVEdge[];
+  /** Data table beside the graph (dist table, adjacency matrix…). */
+  table?: { title: string; columns: string[]; rows: { label: string; cells: GraphTableCell[] }[] };
+  /** Auxiliary strip (queue, stack, edge list, finish order). */
+  strip?: { label: string; chips: TokenChip[] };
+  message?: { text: string; tone: "ok" | "error" | "info" };
+  description: string;
+  codeLines?: number[];
+}
+
+export interface GraphProgram {
+  steps: GraphStep[];
+  complexity: Complexity;
+  pseudocode: string[];
+  title: string;
+}
+
+export type GraphOperationId =
+  | "adjMatrix"
+  | "adjList"
+  | "bfs"
+  | "dfs"
+  | "dijkstra"
+  | "bellmanFord"
+  | "floydWarshall"
+  | "prim"
+  | "kruskal"
+  | "bridges"
+  | "articulation"
+  | "scc";

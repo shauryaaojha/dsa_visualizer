@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { FitStage } from "@/components/visualizer/FitStage";
 import { useTreeStore } from "@/lib/treeStore";
 import type { HighlightKind, RTreeNode, TreeNodeState } from "@/types/visualization";
 
@@ -140,7 +141,8 @@ export function RecursionTreeCanvas() {
   const cy = (n: RTreeNode) => TOP_PAD + n.depth * ROW_H + 20;
 
   return (
-    <div className="scroll-thin flex h-full w-full flex-col items-center gap-md overflow-auto px-lg py-md">
+    <FitStage>
+      <div className="flex flex-col items-center gap-md px-lg py-md">
       {/* Tree */}
       <div className="relative shrink-0" style={{ width: canvasWidth, height: canvasH }}>
         {/* SVG edges */}
@@ -228,5 +230,6 @@ export function RecursionTreeCanvas() {
         </div>
       </div>
     </div>
+    </FitStage>
   );
 }

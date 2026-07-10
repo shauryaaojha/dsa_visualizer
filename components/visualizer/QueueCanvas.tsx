@@ -14,6 +14,7 @@
 // Cells being enqueued/dequeued float out of the structure while in transit.
 
 import { AnimatePresence, motion } from "framer-motion";
+import { FitStage } from "@/components/visualizer/FitStage";
 import { useQueueStore } from "@/lib/queueStore";
 import type { QueueCell, SQCellState } from "@/types/visualization";
 
@@ -146,9 +147,8 @@ export function QueueCanvas() {
     };
 
     return (
-      <div className="scroll-thin h-full w-full overflow-x-auto overflow-y-auto px-2 py-6">
-        <div className="flex min-h-full min-w-full items-center justify-center">
-          <div className="relative shrink-0" style={{ width: contentW, height: contentH }}>
+      <FitStage>
+          <div className="relative" style={{ width: contentW, height: contentH }}>
             <svg className="absolute inset-0 overflow-visible" width={contentW} height={contentH}>
               <defs>
                 <marker id="q-arrow-mint" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
@@ -227,8 +227,7 @@ export function QueueCanvas() {
               )}
             </AnimatePresence>
           </div>
-        </div>
-      </div>
+      </FitStage>
     );
   }
 
@@ -248,9 +247,8 @@ export function QueueCanvas() {
     const posY = (i: number, r: number) => cy0 + r * Math.sin(angle(i));
 
     return (
-      <div className="scroll-thin h-full w-full overflow-x-auto overflow-y-auto px-2 py-6">
-        <div className="flex min-h-full min-w-full items-center justify-center">
-          <div className="relative shrink-0" style={{ width: contentW, height: contentH }}>
+      <FitStage>
+          <div className="relative" style={{ width: contentW, height: contentH }}>
             {/* ring guide + rotation hint */}
             <svg className="absolute inset-0 overflow-visible" width={contentW} height={contentH}>
               <circle cx={cx0} cy={cy0} r={R} fill="none" stroke="#7a8087" strokeWidth={1} strokeDasharray="3 5" opacity={0.3} />
@@ -321,8 +319,7 @@ export function QueueCanvas() {
               )}
             </AnimatePresence>
           </div>
-        </div>
-      </div>
+      </FitStage>
     );
   }
 
@@ -349,9 +346,8 @@ export function QueueCanvas() {
   const contentH = arrY + CELL_H + 90;
 
   return (
-    <div className="scroll-thin h-full w-full overflow-x-auto overflow-y-auto px-2 py-6">
-      <div className="flex min-h-full min-w-full items-center justify-center">
-        <div className="relative shrink-0" style={{ width: contentW, height: contentH }}>
+    <FitStage>
+        <div className="relative" style={{ width: contentW, height: contentH }}>
           {/* tree edges */}
           <svg className="absolute inset-0 overflow-visible" width={contentW} height={contentH}>
             {cells.map((c, i) => {
@@ -409,7 +405,6 @@ export function QueueCanvas() {
             )}
           </AnimatePresence>
         </div>
-      </div>
-    </div>
+    </FitStage>
   );
 }

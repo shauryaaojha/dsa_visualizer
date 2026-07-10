@@ -13,6 +13,7 @@
 // notes on cells (recursion frames) and a verdict badge.
 
 import { AnimatePresence, motion } from "framer-motion";
+import { FitStage } from "@/components/visualizer/FitStage";
 import { useStackStore } from "@/lib/stackStore";
 import type { SQCellState, StackCell, TokenChip } from "@/types/visualization";
 
@@ -172,9 +173,8 @@ export function StackCanvas() {
   const message = step?.message;
 
   return (
-    <div className="scroll-thin h-full w-full overflow-x-auto overflow-y-auto px-2 py-4">
-      <div className="flex min-h-full min-w-full items-center justify-center">
-        <div className="relative shrink-0" style={{ width: contentW, height: contentH }}>
+    <FitStage>
+      <div className="relative" style={{ width: contentW, height: contentH }}>
           {/* Token strips (applications) */}
           {step?.tokens && (
             <div className="absolute left-0 right-0 flex flex-col gap-2" style={{ top: 0 }}>
@@ -366,7 +366,6 @@ export function StackCanvas() {
             )}
           </AnimatePresence>
         </div>
-      </div>
-    </div>
+    </FitStage>
   );
 }

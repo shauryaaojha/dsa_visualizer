@@ -13,6 +13,7 @@
 // row until they are linked in / after they are unlinked.
 
 import { AnimatePresence, motion } from "framer-motion";
+import { FitStage } from "@/components/visualizer/FitStage";
 import { useLinkedListStore } from "@/lib/linkedListStore";
 import type { LLNode, LLNodeState, LLPointer } from "@/types/visualization";
 
@@ -205,9 +206,8 @@ export function LinkedListCanvas() {
   });
 
   return (
-    <div className="scroll-thin h-full w-full overflow-x-auto overflow-y-auto px-2 py-6">
-      <div className="flex min-h-full min-w-full items-center justify-center">
-      <div className="relative shrink-0" style={{ width: contentW, height: contentH }}>
+    <FitStage>
+      <div className="relative" style={{ width: contentW, height: contentH }}>
         {/* Wiring */}
         <svg className="absolute inset-0 overflow-visible" width={contentW} height={contentH}>
           <defs>
@@ -312,7 +312,6 @@ export function LinkedListCanvas() {
           )),
         )}
       </div>
-      </div>
-    </div>
+    </FitStage>
   );
 }

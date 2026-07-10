@@ -17,6 +17,7 @@ interface AppShellProps {
 
 export function AppShell({ children, sidebar, footer }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [railOpen, setRailOpen] = useState(true); // md+ : collapsible control rail
   const rail = sidebar ?? <Sidebar />;
   const bar = footer ?? <ControlsPanel />;
 
@@ -26,14 +27,24 @@ export function AppShell({ children, sidebar, footer }: AppShellProps) {
       <Navbar />
 
       <div className="mt-16 flex h-[calc(100dvh-120px)] w-full flex-1 overflow-hidden">
-        {/* Control rail: static column on md+, slide-in drawer on mobile */}
+        {/* Control rail: collapsible column on md+, slide-in drawer on mobile */}
         <div
-          className={`fixed bottom-14 left-0 top-16 z-50 flex transition-transform duration-300 ease-out md:static md:bottom-0 md:top-0 md:z-auto md:translate-x-0 ${
+          className={`fixed bottom-14 left-0 top-16 z-50 flex transition-transform duration-300 ease-out md:static md:bottom-0 md:top-0 md:z-auto md:translate-x-0 md:overflow-hidden md:transition-[width] ${
             drawerOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-          }`}
+          } ${railOpen ? "md:w-72" : "md:w-0"}`}
         >
           {rail}
         </div>
+
+        {/* Rail collapse handle (md+) — hide the sidebar to see the full canvas */}
+        <button
+          onClick={() => setRailOpen((v) => !v)}
+          title={railOpen ? "Hide controls" : "Show controls"}
+          aria-label={railOpen ? "Hide controls" : "Show controls"}
+          className="z-40 hidden w-4 shrink-0 items-center justify-center border-r border-outline-variant bg-surface-container-low/60 text-on-surface-variant/60 backdrop-blur-sm transition-colors hover:bg-surface-container hover:text-primary md:flex"
+        >
+          <Icon name={railOpen ? "chevron_left" : "chevron_right"} className="text-[16px]" />
+        </button>
 
         {/* Mobile backdrop */}
         {drawerOpen && (

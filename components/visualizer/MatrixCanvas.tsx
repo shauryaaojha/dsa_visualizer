@@ -5,6 +5,7 @@
 // fades value changes.
 
 import { motion } from "framer-motion";
+import { FitStage } from "@/components/visualizer/FitStage";
 import { useMatrixStore } from "@/lib/matrixStore";
 import type { HighlightKind, MatrixGrid } from "@/types/visualization";
 
@@ -60,7 +61,7 @@ export function MatrixCanvas() {
     : [{ label: "Matrix", cells: a, highlights: {} }];
 
   return (
-    <div className="flex w-full flex-col items-center justify-center gap-lg px-lg">
+    <FitStage>
       <div className="flex flex-wrap items-start justify-center gap-xl">
         {grids.map((g, i) => (
           <Grid key={g.label + i} grid={g} />
@@ -69,6 +70,6 @@ export function MatrixCanvas() {
       <p className="max-w-md text-center font-body-sm text-body-sm text-on-surface-variant/60">
         A matrix is an array of arrays — laid out row-major in one contiguous block of memory.
       </p>
-    </div>
+    </FitStage>
   );
 }

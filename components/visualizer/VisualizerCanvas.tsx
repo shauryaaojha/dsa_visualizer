@@ -5,6 +5,7 @@
 // snapping. Highlight state recolors borders/glow; pointers float above slots.
 
 import { AnimatePresence, motion } from "framer-motion";
+import { FitStage } from "@/components/visualizer/FitStage";
 import { Icon } from "@/components/ui/Icon";
 import { useVisualizerStore } from "@/lib/visualizerStore";
 import type { HighlightKind } from "@/types/visualization";
@@ -38,8 +39,8 @@ export function VisualizerCanvas() {
   const totalWidth = cells.length * CELL + Math.max(0, cells.length - 1) * GAP;
 
   return (
-    <div className="scroll-thin h-full w-full overflow-x-auto overflow-y-auto px-4 py-6 sm:px-lg">
-      <div className="flex min-h-full min-w-full flex-col items-center justify-center">
+    <FitStage>
+      <div className="flex flex-col items-center justify-center px-4 py-6">
       {/* Index ruler + cells */}
       <div className="relative" style={{ minHeight: 160 }}>
         {/* Pointers (rendered above the row) */}
@@ -107,6 +108,6 @@ export function VisualizerCanvas() {
         but insert/delete must shift their neighbours.
       </p>
       </div>
-    </div>
+    </FitStage>
   );
 }
