@@ -561,3 +561,142 @@ export type GraphOperationId =
   | "bridges"
   | "articulation"
   | "scc";
+
+// ---------------------------------------------------------------------------
+// Foundations visualization — "the glass machine"
+//
+// For absolute beginners: every frame shows the three invisible things that
+// make programming make sense — the program counter (highlighted pseudocode
+// line), MEMORY as labeled variable boxes (values overwritten with a flash,
+// same box language as the HEAD/TOP pointer boxes), and a CONSOLE where
+// output accumulates. The complexity pages add step-tile counters: every
+// executed line drops a tile, so "time complexity" is literally watching
+// tiles pile up faster for bigger inputs.
+// ---------------------------------------------------------------------------
+
+export interface FoundVar {
+  name: string;
+  value: string;
+  type: "number" | "string" | "boolean";
+  state: SQCellState;
+}
+
+export interface FoundCounter {
+  /** Row label, e.g. "n = 4" or "O(n²)". */
+  label: string;
+  /** Number of step tiles to draw. */
+  steps: number;
+  /** Accent color for the tiles. */
+  color: string;
+  /** Small note after the tiles, e.g. "= 3n + 2". */
+  note?: string;
+  /** Highlight this row as currently running. */
+  active?: boolean;
+}
+
+export interface FoundationsStep {
+  vars: FoundVar[];
+  /** Console output so far; the last line renders as freshly printed. */
+  consoleLines: string[];
+  /** Step-tile rows (complexity pages). */
+  counters?: FoundCounter[];
+  message?: { text: string; tone: "ok" | "error" | "info" };
+  description: string;
+  codeLines?: number[];
+}
+
+export interface FoundationsProgram {
+  steps: FoundationsStep[];
+  complexity: Complexity;
+  /** The little program itself — the star of the page. */
+  pseudocode: string[];
+  title: string;
+}
+
+export type FoundationsOperationId =
+  | "fWhatIsAProgram"
+  | "fVariables"
+  | "fDatatypes"
+  | "fConditionals"
+  | "fLoops"
+  | "fCountingSteps"
+  | "fBigO"
+  | "fGrowthRates"
+  // --- complexity analysis ---
+  | "fTimeComplexity"
+  | "fSpaceComplexity"
+  | "fBestCase"
+  | "fWorstCase"
+  | "fAverageCase"
+  // --- asymptotic notation ---
+  | "fBigOBound"
+  | "fBigOmega"
+  | "fBigTheta"
+  | "fLittleO"
+  | "fLittleOmega"
+  // --- amortized analysis ---
+  | "fAggregate"
+  | "fAccounting"
+  | "fPotential"
+  // --- mathematical foundations ---
+  | "fInduction"
+  | "fRecurrence";
+
+// ---------------------------------------------------------------------------
+// String visualization
+//
+// Strings drawn as rows of character cells (an array wearing quotes), with
+// floating cursors above them, an optional letter-frequency chip table
+// (anagram-style problems) and an output strip. Classic LeetCode problems.
+// ---------------------------------------------------------------------------
+
+export interface StrChar {
+  id: string;
+  ch: string;
+  state: SQCellState;
+}
+
+export interface StringRow {
+  /** e.g. `s`, `t`. */
+  label?: string;
+  chars: StrChar[];
+}
+
+export interface StringPointer {
+  label: string;
+  row: number;
+  index: number;
+  color?: string;
+}
+
+export interface FreqEntry {
+  key: string;
+  /** count from string a / string b. */
+  a: number;
+  b?: number;
+  state: SQCellState;
+}
+
+export interface StringStep {
+  rows: StringRow[];
+  pointers: StringPointer[];
+  freq?: FreqEntry[];
+  output?: { label: string; chips: TokenChip[] };
+  message?: { text: string; tone: "ok" | "error" | "info" };
+  description: string;
+  codeLines?: number[];
+}
+
+export interface StringProgram {
+  steps: StringStep[];
+  complexity: Complexity;
+  pseudocode: string[];
+  title: string;
+}
+
+export type StringOperationId =
+  | "strReverse"
+  | "strPalindrome"
+  | "strAnagram"
+  | "strFirstUnique"
+  | "strCommonPrefix";

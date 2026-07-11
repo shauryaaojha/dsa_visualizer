@@ -508,6 +508,121 @@ const graphs: SectionMeta = {
   ],
 };
 
+// --- Foundations (fully built) — for absolute beginners -----------------------
+
+const foundations: SectionMeta = {
+  slug: "foundations",
+  title: "Foundations",
+  blurb: "Never programmed? Start here — watch a computer think, one line at a time.",
+  icon: "school",
+  status: "available",
+  categories: [
+    {
+      slug: "programming-basics",
+      title: "Programming Basics",
+      blurb: "The glass machine: instructions, memory boxes and a console — nothing hidden.",
+      icon: "smart_toy",
+      status: "available",
+      leaves: [
+        { slug: "what-is-a-program", title: "What is a Program?", blurb: "Instructions → memory → output. That's all of it.", icon: "smart_toy", complexity: { time: "4 steps", space: "2 boxes" } },
+        { slug: "variables", title: "Variables", blurb: "Labeled boxes; assignment overwrites, copies don't follow.", icon: "inventory_2", complexity: { time: "5 steps", space: "2 boxes" } },
+        { slug: "datatypes", title: "Datatypes", blurb: "5 + 1 = 6, but \"5\" + 1 = \"51\" — the type decides.", icon: "category", complexity: { time: "6 steps", space: "3 boxes" } },
+        { slug: "conditionals", title: "Conditionals", blurb: "A true/false question picks which lines run.", icon: "alt_route", complexity: { time: "one path", space: "1 box" } },
+        { slug: "loops", title: "Loops", blurb: "The program counter jumps backwards — that's a loop.", icon: "repeat", complexity: { time: "n laps", space: "2 boxes" } },
+      ],
+    },
+    {
+      slug: "time-complexity",
+      title: "Time Complexity",
+      blurb: "Cost you can watch: every step drops a tile — see how the pile grows with n.",
+      icon: "timer",
+      status: "available",
+      leaves: [
+        { slug: "counting-steps", title: "Counting Steps", blurb: "Speed isn't seconds — it's how steps grow with input.", icon: "timer", complexity: { time: "≈ n", space: "O(1)" } },
+        { slug: "big-o-notation", title: "Big-O Notation", blurb: "n + 2 → O(n): keep what grows, drop the rest.", icon: "functions", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "growth-rates", title: "Growth Rates", blurb: "O(1) vs O(log n) vs O(n) vs O(n²) — a step-tile race.", icon: "trending_up", complexity: { time: "O(1)→O(n²)", space: "—" } },
+      ],
+    },
+    {
+      slug: "complexity-analysis",
+      title: "Complexity Analysis",
+      blurb: "Time, space, and the three cases — formalise the cost of any algorithm.",
+      icon: "analytics",
+      status: "available",
+      leaves: [
+        { slug: "time-complexity", title: "Time Complexity", blurb: "T(n): steps as a FUNCTION of input size.", icon: "schedule", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "space-complexity", title: "Space Complexity", blurb: "Count extra memory boxes, not seconds.", icon: "memory", complexity: { time: "O(n)", space: "O(1) vs O(n)" } },
+        { slug: "best-case", title: "Best Case", blurb: "The luckiest input — Ω(1) for linear search.", icon: "sentiment_satisfied", complexity: { time: "Ω(1)", space: "O(1)" } },
+        { slug: "worst-case", title: "Worst Case", blurb: "The guarantee — what the O(·) badges mean.", icon: "sentiment_dissatisfied", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "average-case", title: "Average Case", blurb: "Expected cost over typical inputs — Θ(n).", icon: "sentiment_neutral", complexity: { time: "Θ(n)", space: "O(1)" } },
+      ],
+    },
+    {
+      slug: "asymptotic-analysis",
+      title: "Asymptotic Notation",
+      blurb: "O, Ω, Θ, o, ω — the five symbols that pin growth rates.",
+      icon: "functions",
+      status: "available",
+      leaves: [
+        { slug: "big-o", title: "Big-O (upper bound)", blurb: "Ceiling: f ≤ c·g beyond n₀.", icon: "vertical_align_top", complexity: { time: "O(n)", space: "—" } },
+        { slug: "big-omega", title: "Big-Ω (lower bound)", blurb: "Floor: f ≥ c·g beyond n₀.", icon: "vertical_align_bottom", complexity: { time: "Ω(n)", space: "—" } },
+        { slug: "big-theta", title: "Big-Θ (tight bound)", blurb: "Sandwich: O and Ω of the same g.", icon: "vertical_align_center", complexity: { time: "Θ(n)", space: "—" } },
+        { slug: "little-o", title: "little-o (strict upper)", blurb: "STRICTLY slower — f/g → 0.", icon: "keyboard_double_arrow_down", complexity: { time: "o(n²)", space: "—" } },
+        { slug: "little-omega", title: "little-ω (strict lower)", blurb: "STRICTLY faster — f/g → ∞.", icon: "keyboard_double_arrow_up", complexity: { time: "ω(n)", space: "—" } },
+      ],
+    },
+    {
+      slug: "amortized-analysis",
+      title: "Amortized Analysis",
+      blurb: "Spread the cost: aggregate, accounting and potential methods.",
+      icon: "savings",
+      status: "available",
+      leaves: [
+        { slug: "aggregate-method", title: "Aggregate Method", blurb: "Total over n ops ÷ n.", icon: "calculate", complexity: { time: "O(1) amortized", space: "O(n)" } },
+        { slug: "accounting-method", title: "Accounting Method", blurb: "Overcharge cheap ops; the bank pays spikes.", icon: "savings", complexity: { time: "O(1) amortized", space: "O(n)" } },
+        { slug: "potential-method", title: "Potential Method", blurb: "Φ stores energy; spikes release it.", icon: "battery_charging_full", complexity: { time: "O(1) amortized", space: "O(n)" } },
+      ],
+    },
+    {
+      slug: "mathematical-foundations",
+      title: "Mathematical Foundations",
+      blurb: "Induction and recurrences — prove it works, solve the cost.",
+      icon: "calculate",
+      status: "available",
+      leaves: [
+        { slug: "induction", title: "Proof by Induction", blurb: "Base + step = all n (dominoes).", icon: "domino_mask", complexity: { time: "—", space: "—" } },
+        { slug: "recurrence-relations", title: "Recurrence Relations", blurb: "Unroll T(n) = T(n/2) + 1 → O(log n).", icon: "all_inclusive", complexity: { time: "O(log n)", space: "—" } },
+      ],
+    },
+  ],
+};
+
+// --- Strings (LeetCode classics) -----------------------------------------------
+
+const strings: SectionMeta = {
+  slug: "strings",
+  title: "Strings",
+  blurb: "Text as an array of characters — classic interview problems, animated.",
+  icon: "title",
+  status: "available",
+  categories: [
+    {
+      slug: "classic-problems",
+      title: "Classic Problems",
+      blurb: "Must-know LeetCode string questions — two pointers and letter tallies.",
+      icon: "code",
+      status: "available",
+      leaves: [
+        { slug: "reverse-string", title: "Reverse String", blurb: "Two pointers swap inward (#344).", icon: "swap_horiz", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "valid-palindrome", title: "Valid Palindrome", blurb: "Compare both ends inward (#125).", icon: "compare_arrows", complexity: { time: "O(n)", space: "O(1)" } },
+        { slug: "valid-anagram", title: "Valid Anagram", blurb: "Compare letter tallies, not positions (#242).", icon: "shuffle", complexity: { time: "O(n)", space: "O(26)" } },
+        { slug: "first-unique-character", title: "First Unique Character", blurb: "Count pass + scan pass (#387).", icon: "looks_one", complexity: { time: "O(n)", space: "O(26)" } },
+        { slug: "longest-common-prefix", title: "Longest Common Prefix", blurb: "Column-by-column agreement (#14).", icon: "align_horizontal_left", complexity: { time: "O(n·m)", space: "O(1)" } },
+      ],
+    },
+  ],
+};
+
 // --- Other sections (folders exist; pages built later) ---------------------
 
 const soon = (
@@ -518,7 +633,7 @@ const soon = (
 ): SectionMeta => ({ slug, title, icon, blurb, status: "soon", categories: [] });
 
 export const SECTIONS: SectionMeta[] = [
-  soon("foundations", "Foundations", "school", "Asymptotics, complexity classes and the math behind analysis."),
+  foundations,
   arrays,
   linkedList,
   stacks,
@@ -526,7 +641,7 @@ export const SECTIONS: SectionMeta[] = [
   trees,
   graphs,
   soon("hashing", "Hashing", "tag", "Hash tables and collision resolution."),
-  soon("strings", "Strings", "title", "String operations and pattern matching."),
+  strings,
 ];
 
 export function getSection(slug: string): SectionMeta | undefined {

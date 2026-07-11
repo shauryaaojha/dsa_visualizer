@@ -37,6 +37,8 @@ export function theoryKey(path: string): string {
   if (parts[1] === "queues") return "q:" + parts.slice(2).join("/");
   if (parts[1] === "trees") return "tr:" + parts.slice(2).join("/");
   if (parts[1] === "graphs") return "g:" + parts.slice(2).join("/");
+  if (parts[1] === "foundations") return "fd:" + parts.slice(2).join("/");
+  if (parts[1] === "strings") return "str:" + parts.slice(2).join("/");
   // arrays (and future sections): category/leaf
   return parts.slice(2).join("/");
 }
@@ -1026,6 +1028,135 @@ const THEORY: Record<string, TheoryDoc> = {
       s("Definition", "In a DIRECTED graph, an SCC is a maximal set where every node reaches every other following the arrows — cycles and everything tangled with them."),
       s("The trick", "Reversing every edge leaves SCCs intact (a cycle reversed is still a cycle) but flips the one-way roads BETWEEN components. A DFS on the transpose, started from the latest-finishing node, is fenced inside exactly one SCC."),
       s("Why finish order", "The node finishing last in pass 1 lies in a 'source' component of the condensation — starting pass 2 there guarantees we peel components off in a safe order."),
+    ],
+  },
+
+  // --- Foundations · programming basics -------------------------------------
+  "fd:programming-basics/what-is-a-program": {
+    title: "What is a Program?",
+    summary: "A list of instructions the computer runs one at a time, top to bottom.",
+    sections: [
+      s("The three parts", "Every program, from a calculator to a game, is exactly three things working together: INSTRUCTIONS (the code lines), MEMORY (labeled boxes holding values), and OUTPUT (what it says back). The visualization shows all three at once."),
+      s("One line at a time", "The computer never reads ahead and never multitasks within your code — it executes the current line completely, then moves to the next. The highlighted line is called the program counter."),
+      s("Why this matters", "Once you can predict what one line does to memory, you can predict what any program does — it's just many such lines. Programming is learning to think in this lockstep."),
+    ],
+  },
+  "fd:programming-basics/variables": {
+    title: "Variables",
+    summary: "A variable is a labeled box in memory holding exactly one value.",
+    sections: [
+      s("Boxes, not math", "`x = 5` is not an equation — it's a command: 'put 5 into the box labeled x'. Reading `x` later means 'open the box and copy what's inside'."),
+      s("Assignment overwrites", "A box holds ONE value. `x = 10` throws away whatever was there before — the old value is gone, not stored somewhere."),
+      s("Copies don't follow", "`y = x` copies the VALUE at that moment. Changing x afterwards does not change y — they are separate boxes. (Later you'll meet references, which behave differently — but boxes come first.)"),
+    ],
+  },
+  "fd:programming-basics/datatypes": {
+    title: "Datatypes",
+    summary: "The type of a value decides what operations on it actually do.",
+    sections: [
+      s("Three starter types", "NUMBER (5 — quantities you do math with), STRING (\"5\" — text, even if it looks like a number), BOOLEAN (true/false — answers to questions)."),
+      s("The + trap", "5 + 1 = 6, but \"5\" + 1 = \"51\": with strings, + glues text together. Same symbol, different meaning — the TYPE decided. Most beginner bugs are exactly this: a value with an unexpected type."),
+      s("Why types exist", "Bytes in memory are just numbers; the type tag tells the computer HOW to interpret and combine them. Languages differ in how strictly they check types, but every language has them."),
+    ],
+  },
+  "fd:programming-basics/conditionals": {
+    title: "Conditionals (if / else)",
+    summary: "A true/false question decides which lines run and which are skipped.",
+    sections: [
+      s("The jump", "Until now the program counter only moved down. An `if` makes it CHOOSE: question true → run the if-branch and skip the else; false → skip ahead to the else. Skipped lines simply never execute that run."),
+      s("Same code, different path", "Run the demo with age 15 and age 25: identical instructions, different data, different output. Every decision your apps make — login checks, game rules, form validation — is this one mechanism."),
+      s("Both paths rejoin", "After the branch, execution continues below the whole if/else — the paths merge again."),
+    ],
+  },
+  "fd:programming-basics/loops": {
+    title: "Loops (while)",
+    summary: "A loop is the program counter jumping backwards until a question says stop.",
+    sections: [
+      s("The backwards jump", "A while-loop is just: check a condition; if true, run the body, then JUMP BACK UP to the check. That's the entire trick — repetition is a jump plus a question."),
+      s("The counter variable", "Something inside the body must move toward making the condition false (like `i = i + 1`), or the loop never ends — the infamous infinite loop."),
+      s("Why loops matter", "Computers are fast BECAUSE of loops: the same five lines can process five items or five billion. Every data-structure operation you'll study is a loop wearing a costume."),
+    ],
+  },
+
+  // --- Foundations · time complexity -----------------------------------------
+  "fd:time-complexity/counting-steps": {
+    title: "Counting Steps",
+    summary: "Speed isn't seconds — it's how the number of executed steps grows with input size.",
+    sections: [
+      s("Why not seconds?", "The same program is faster on a newer laptop — seconds measure the machine, not the algorithm. Instead we count STEPS (executed lines), which is machine-independent."),
+      s("The experiment", "Find-max on 4 items costs about 6 steps; on 8 items about 12. Double the input → double the steps. That proportionality — not the exact numbers — is the algorithm's cost."),
+      s("The question that matters", "Never 'how fast is it on this input?' but 'what happens when the input grows?'. That question is the entire field of complexity analysis."),
+    ],
+  },
+  "fd:time-complexity/big-o-notation": {
+    title: "Big-O Notation",
+    summary: "Keep the fastest-growing part of the step count, drop everything else.",
+    sections: [
+      s("From count to formula", "Find-max costs n + 2 steps: 1 setup + n loop steps + 1 return. The '+2' is fixed; the 'n' grows with input."),
+      s("The simplification", "At n = 1,000,000 the +2 is invisible next to the n. Big-O throws away constants and lower-order terms: n+2, 3n, 2n+5 are all O(n) — 'grows linearly'."),
+      s("What O(n) promises", "Not a time — a SHAPE: double the input, double the work. O(1) = flat, O(n²) = double input, quadruple work. Comparing shapes is how you choose algorithms before writing a line of code."),
+    ],
+  },
+  "fd:time-complexity/growth-rates": {
+    title: "Growth Rates",
+    summary: "O(1), O(log n), O(n), O(n²) — the four curves you'll meet everywhere.",
+    sections: [
+      s("The lineup", "O(1) constant: array indexing. O(log n) halving: binary search. O(n) linear: scanning a list. O(n²) quadratic: comparing every pair (bubble sort)."),
+      s("Small n lies", "At n = 16 the difference is 1 vs 4 vs 16 vs 256 steps — all instant. At n = 1,000,000 it's 1 vs 20 vs a million vs a TRILLION. Quadratic algorithms feel fine in testing and melt in production."),
+      s("The payoff", "Every topic in this app tags operations with O(·) badges. Now you can read them: they tell you which curve you're on when your data grows."),
+    ],
+  },
+
+  // --- Strings · classic problems ---------------------------------------------
+  "str:classic-problems/reverse-string": {
+    title: "Reverse String",
+    summary: "Two pointers at the ends swap their way inward — in place.",
+    complexity: { time: "O(n)", space: "O(1)" },
+    leetcode: "344. Reverse String",
+    sections: [
+      s("Idea", "l starts at the first character, r at the last. Swap them, step both inward, repeat until they meet. Each swap fixes two positions, so n/2 swaps reverse everything."),
+      s("In place", "No second string is built — O(1) extra space. The two-pointer swap is the template for dozens of array/string problems."),
+    ],
+  },
+  "str:classic-problems/valid-palindrome": {
+    title: "Valid Palindrome",
+    summary: "Compare characters from both ends inward; first mismatch ends it.",
+    complexity: { time: "O(n)", space: "O(1)" },
+    leetcode: "125. Valid Palindrome",
+    sections: [
+      s("Idea", "A palindrome reads the same forwards and backwards — so s[0] must equal s[n−1], s[1] must equal s[n−2], and so on. Two pointers check exactly those pairs."),
+      s("Early exit", "One mismatched pair disproves the whole thing — stop immediately. Matching all the way to the middle proves it."),
+      s("Full LeetCode version", "The real #125 also skips non-alphanumeric characters and ignores case — the pointer logic is identical, with an extra 'skip junk' step."),
+    ],
+  },
+  "str:classic-problems/valid-anagram": {
+    title: "Valid Anagram",
+    summary: "Same letters, different order — compare letter counts, not positions.",
+    complexity: { time: "O(n)", space: "O(26)" },
+    leetcode: "242. Valid Anagram",
+    sections: [
+      s("Idea", "Order doesn't matter, so positions are useless — tally how many times each letter appears in s and in t. Anagram ⇔ every letter's counts match."),
+      s("Why not sort?", "Sorting both strings and comparing works but costs O(n log n). Counting is a single pass: O(n) with a fixed 26-slot table — the first taste of 'trade a little memory for a lot of speed'."),
+    ],
+  },
+  "str:classic-problems/first-unique-character": {
+    title: "First Unique Character",
+    summary: "Two cheap passes: count everything, then scan for the first count-of-1.",
+    complexity: { time: "O(n)", space: "O(26)" },
+    leetcode: "387. First Unique Character in a String",
+    sections: [
+      s("Idea", "Pass 1 builds the letter tally. Pass 2 walks left to right and returns the first character whose count is 1 — the scan ORDER is what makes it the first."),
+      s("The lesson", "The naive approach checks each character against all others: O(n²). Two linear passes with a tally do it in O(n). 'Precompute, then scan' is a pattern you'll reuse constantly."),
+    ],
+  },
+  "str:classic-problems/longest-common-prefix": {
+    title: "Longest Common Prefix",
+    summary: "Check column by column — the prefix ends at the first disagreement.",
+    complexity: { time: "O(n·m)", space: "O(1)" },
+    leetcode: "14. Longest Common Prefix",
+    sections: [
+      s("Idea", "Vertical scanning: look at column 0 of every word, then column 1, and so on. A column joins the prefix only if EVERY word agrees on it; the first disagreement (or the shortest word ending) stops the scan."),
+      s("Cost", "At worst you look at every character of every word once: O(total characters). The answer is at most as long as the shortest word."),
     ],
   },
 };
