@@ -1,5 +1,6 @@
 import { TopicHub } from "@/components/topic/TopicHub";
 import { getSection } from "@/data/curriculum";
+import { getJourneyStage } from "@/data/journey";
 
 export default function ArraysHub() {
   const section = getSection("arrays")!;
@@ -18,6 +19,7 @@ export default function ArraysHub() {
       eyebrow="TOPIC"
       title={section.title}
       blurb={section.blurb}
+      story={getJourneyStage("arrays")}
       cards={cards}
       cardsHeading="Choose a category"
     />

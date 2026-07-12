@@ -11,6 +11,20 @@ const BASE_DELAY = 2000;
 
 interface FoundationsParams {
   value: number;
+  /** Raw comma/space-separated list input, parsed on run. */
+  list: string;
+  /** Free text input (e.g. your name). */
+  text: string;
+}
+
+/** "5, 3 8,1" → [5, 3, 8, 1]; invalid/empty → undefined (engine falls back). */
+function parseList(raw: string): number[] | undefined {
+  const nums = raw
+    .split(/[\s,;]+/)
+    .filter(Boolean)
+    .map((t) => Number(t))
+    .filter((x) => Number.isFinite(x));
+  return nums.length >= 2 ? nums : undefined;
 }
 
 interface FoundationsState {
@@ -66,7 +80,7 @@ export const useFoundationsStore = create<FoundationsState>((set, get) => {
 
   return {
     operation: "fWhatIsAProgram",
-    params: { value: 0 },
+    params: { value: 0, list: "", text: "" },
     program: null,
     stepIndex: 0,
     isPlaying: false,
@@ -89,7 +103,11 @@ export const useFoundationsStore = create<FoundationsState>((set, get) => {
       const state = get();
       const operation = op ?? state.operation;
       const merged = { ...state.params, ...params };
-      const program = runFoundationsOperation(operation, merged);
+      const program = runFoundationsOperation(operation, {
+        value: merged.value,
+        list: parseList(merged.list),
+        text: merged.text,
+      });
       set({ operation, params: merged, program, stepIndex: 0, isPlaying: false });
       get().play();
     },

@@ -48,6 +48,20 @@ const TABS: Record<string, Tab[]> = {
 const VALUE_LABEL: Partial<Record<FoundationsOperationId, string>> = {
   fConditionals: "AGE",
   fLoops: "LAPS (1–7)",
+  fGrowthRates: "n (4–25)",
+};
+
+const LIST_LABEL: Partial<Record<FoundationsOperationId, string>> = {
+  fCountingSteps: "YOUR LIST (2–8 numbers)",
+  fTimeComplexity: "YOUR LIST (length = n)",
+  fSpaceComplexity: "LIST TO REVERSE",
+  fBestCase: "LIST TO SEARCH",
+  fWorstCase: "LIST TO SEARCH",
+  fAverageCase: "LIST TO SEARCH",
+};
+
+const TEXT_LABEL: Partial<Record<FoundationsOperationId, string>> = {
+  fWhatIsAProgram: "YOUR NAME",
 };
 
 export function FoundationsSidebar() {
@@ -116,8 +130,42 @@ export function FoundationsSidebar() {
             <input
               type="number"
               value={params.value || ""}
-              placeholder={operation === "fLoops" ? "4" : "15"}
+              placeholder={operation === "fLoops" ? "4" : operation === "fGrowthRates" ? "16" : "15"}
               onChange={(e) => setParams({ value: parseInt(e.target.value, 10) || 0 })}
+              className="w-full border border-outline-variant bg-surface-container-lowest px-2 py-1.5 font-mono text-body-sm text-on-surface outline-none focus:border-primary"
+            />
+          </div>
+        )}
+
+        {meta?.params.includes("list") && (
+          <div>
+            <label className="mb-1 block font-label-caps text-[10px] text-on-surface-variant">
+              {LIST_LABEL[operation] ?? "CUSTOM LIST"}
+            </label>
+            <input
+              type="text"
+              value={params.list}
+              placeholder="e.g. 5, 3, 8, 1, 9"
+              onChange={(e) => setParams({ list: e.target.value })}
+              className="w-full border border-outline-variant bg-surface-container-lowest px-2 py-1.5 font-mono text-body-sm text-on-surface outline-none focus:border-primary"
+            />
+            <p className="mt-1 font-body-sm text-[10px] text-on-surface-variant/50">
+              Comma-separated numbers · leave empty for the default
+            </p>
+          </div>
+        )}
+
+        {meta?.params.includes("text") && (
+          <div>
+            <label className="mb-1 block font-label-caps text-[10px] text-on-surface-variant">
+              {TEXT_LABEL[operation] ?? "TEXT"}
+            </label>
+            <input
+              type="text"
+              value={params.text}
+              placeholder="Ada"
+              maxLength={12}
+              onChange={(e) => setParams({ text: e.target.value })}
               className="w-full border border-outline-variant bg-surface-container-lowest px-2 py-1.5 font-mono text-body-sm text-on-surface outline-none focus:border-primary"
             />
           </div>

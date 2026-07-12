@@ -594,12 +594,31 @@ export interface FoundCounter {
   active?: boolean;
 }
 
+export interface FoundChartSeries {
+  label: string;
+  color: string;
+  /** [x, y] points, x = input size n, y = steps/cost. Drawn in order. */
+  points: [number, number][];
+  /** Render as a dashed reference curve instead of a solid measured line. */
+  dashed?: boolean;
+}
+
+/** Live growth chart shown on the complexity pages — cost drawn as a CURVE. */
+export interface FoundChart {
+  title: string;
+  xLabel: string;
+  yLabel: string;
+  series: FoundChartSeries[];
+}
+
 export interface FoundationsStep {
   vars: FoundVar[];
   /** Console output so far; the last line renders as freshly printed. */
   consoleLines: string[];
   /** Step-tile rows (complexity pages). */
   counters?: FoundCounter[];
+  /** Live growth chart (complexity pages) — gains points as steps play. */
+  chart?: FoundChart;
   message?: { text: string; tone: "ok" | "error" | "info" };
   description: string;
   codeLines?: number[];

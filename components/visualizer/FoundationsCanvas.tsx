@@ -10,6 +10,8 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { FitStage } from "@/components/visualizer/FitStage";
+import { FoundationsChart } from "@/components/visualizer/FoundationsChart";
+import { Icon } from "@/components/ui/Icon";
 import { useFoundationsStore } from "@/lib/foundationsStore";
 import type { FoundVar, SQCellState } from "@/types/visualization";
 
@@ -55,17 +57,76 @@ function VarBox({ v }: { v: FoundVar }) {
   );
 }
 
+// --- Instruction → Memory → Console pipeline (programming-basics pages) ------
+
+function PipeNode({ icon, label, active }: { icon: string; label: string; active: boolean }) {
+  return (
+    <div
+      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition-all duration-300 ${
+        active
+          ? "border-coral bg-coral/10 text-coral shadow-[0_0_14px_rgba(255,95,74,0.35)]"
+          : "border-outline-variant/70 text-on-surface-variant/50"
+      }`}
+    >
+      <Icon name={icon} className="text-[14px]" />
+      <span className="font-label-caps text-[9px] tracking-widest">{label}</span>
+    </div>
+  );
+}
+
+function PipeBeam({ fired, seed }: { fired: boolean; seed: number }) {
+  return (
+    <div className="relative h-px w-8 bg-outline-variant/60 sm:w-12">
+      {fired && (
+        <motion.span
+          key={seed}
+          className="absolute -top-[3px] h-[7px] w-[7px] rounded-full bg-coral shadow-[0_0_8px_rgba(255,95,74,0.8)]"
+          initial={{ left: "-4px", opacity: 0 }}
+          animate={{ left: "calc(100% - 3px)", opacity: [0, 1, 1, 0.6] }}
+          transition={{ duration: 0.55, ease: "easeInOut" }}
+        />
+      )}
+    </div>
+  );
+}
+
+/** The machine, as a machine: watch each executed instruction PUSH data into
+ *  memory and the console. Shown on the basics pages (no counters/chart). */
+function FlowStrip({ memFired, conFired, seed }: { memFired: boolean; conFired: boolean; seed: number }) {
+  return (
+    <div className="flex items-center justify-center">
+      <PipeNode icon="code" label="INSTRUCTION" active={memFired || conFired} />
+      <PipeBeam fired={memFired || conFired} seed={seed} />
+      <PipeNode icon="inventory_2" label="MEMORY" active={memFired} />
+      <PipeBeam fired={conFired} seed={seed} />
+      <PipeNode icon="terminal" label="CONSOLE" active={conFired} />
+    </div>
+  );
+}
+
 export function FoundationsCanvas() {
   const step = useFoundationsStore((s) => s.currentStep());
+  const stepIndex = useFoundationsStore((s) => s.stepIndex);
+  const program = useFoundationsStore((s) => s.program);
 
   const vars = step?.vars ?? [];
   const consoleLines = step?.consoleLines ?? [];
   const counters = step?.counters;
+  const chart = step?.chart;
   const message = step?.message;
+
+  // What did THIS step touch? Drives the pipeline pulse on the basics pages.
+  const prev = program && stepIndex > 0 ? program.steps[stepIndex - 1] : null;
+  const memFired = vars.some((v) => v.state === "new" || v.state === "removing" || v.state === "target" || v.state === "found");
+  const conFired = !!prev && consoleLines.length > prev.consoleLines.length;
+  const isBasicsPage = !counters && !chart;
 
   return (
     <FitStage>
       <div className="flex w-[600px] max-w-full flex-col gap-4 px-2">
+        {/* INSTRUCTION → MEMORY → CONSOLE pipeline (basics pages only) */}
+        {isBasicsPage && <FlowStrip memFired={memFired} conFired={conFired} seed={stepIndex} />}
+
         {/* MEMORY */}
         <div className="rounded-xl border border-outline-variant/70 bg-surface-container-low/50 p-4 backdrop-blur-sm">
           <p className="mb-3 font-label-caps text-[10px] tracking-widest text-on-surface-variant/60">
@@ -121,6 +182,16 @@ export function FoundationsCanvas() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* GRAPH (complexity pages) */}
+        {chart && (
+          <div className="rounded-xl border border-outline-variant/70 bg-surface-container-low/50 p-4 backdrop-blur-sm">
+            <p className="mb-2 font-label-caps text-[10px] tracking-widest text-on-surface-variant/60">
+              GRAPH — {chart.title}
+            </p>
+            <FoundationsChart chart={chart} />
           </div>
         )}
 

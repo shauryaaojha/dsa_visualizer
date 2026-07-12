@@ -5,6 +5,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { EvolutionStory } from "@/components/landing/EvolutionStory";
 import { HeroDemo } from "@/components/landing/HeroDemo";
 import { Navbar } from "@/components/layout/Navbar";
 import { ShaderBackground } from "@/components/layout/ShaderBackground";
@@ -196,6 +197,9 @@ export function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* ============ WHY THESE STRUCTURES ============ */}
+        <EvolutionStory />
 
         {/* ============ TOPICS ============ */}
         <section id="topics" className="mx-auto w-full max-w-6xl scroll-mt-6 px-margin py-16">

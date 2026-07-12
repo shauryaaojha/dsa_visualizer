@@ -16,6 +16,8 @@ import type {
   FoundationsOperationId,
   FoundationsProgram,
   FoundationsStep,
+  FoundChart,
+  FoundChartSeries,
   FoundCounter,
   FoundVar,
   SQCellState,
@@ -26,6 +28,7 @@ interface Builder {
   vars: FoundVar[];
   consoleLines: string[];
   counters?: FoundCounter[];
+  chart?: FoundChart;
 }
 
 function newB(): Builder {
@@ -42,10 +45,39 @@ function snapshot(
     vars: b.vars.map((v) => ({ ...v })),
     consoleLines: [...b.consoleLines],
     counters: b.counters?.map((c) => ({ ...c })),
+    chart: b.chart
+      ? {
+          ...b.chart,
+          series: b.chart.series.map((s) => ({ ...s, points: s.points.map((p) => [...p] as [number, number]) })),
+        }
+      : undefined,
     message: opts.message,
     description,
     codeLines,
   });
+}
+
+// --- Chart helpers -------------------------------------------------------------
+
+function chartInit(b: Builder, title: string, xLabel: string, yLabel: string, series: FoundChartSeries[]): void {
+  b.chart = { title, xLabel, yLabel, series };
+}
+
+/** A dashed reference curve, e.g. the ideal n or n² line. */
+function refCurve(label: string, color: string, fn: (x: number) => number, from: number, to: number): FoundChartSeries {
+  const points: [number, number][] = [];
+  for (let x = from; x <= to; x++) points.push([x, fn(x)]);
+  return { label, color, dashed: true, points };
+}
+
+function chartPush(b: Builder, seriesIndex: number, point: [number, number]): void {
+  b.chart?.series[seriesIndex]?.points.push(point);
+}
+
+/** Parse/clamp a custom list param: keep 2–8 finite values, else fall back. */
+function useList(list: number[] | undefined, fallback: number[]): number[] {
+  const clean = (list ?? []).filter((x) => Number.isFinite(x)).slice(0, 8).map((x) => Math.round(x));
+  return clean.length >= 2 ? clean : fallback;
 }
 
 function setVar(b: Builder, name: string, value: string, type: FoundVar["type"], state: SQCellState = "new"): void {
@@ -68,20 +100,21 @@ function done(b: Builder, title: string, complexity: Complexity, pseudocode: str
 
 // --- Programming basics -------------------------------------------------------
 
-const WHATIS_PSEUDO = ['name = "Ada"', 'greeting = "Hello, " + name', "print(greeting)", 'print("Nice to meet you!")'];
+function fWhatIsAProgram(b: Builder, text?: string): FoundationsProgram {
+  const name = (text ?? "").trim().replace(/["\\]/g, "").slice(0, 12) || "Ada";
+  const pseudo = [`name = "${name}"`, 'greeting = "Hello, " + name', "print(greeting)", 'print("Nice to meet you!")'];
 
-function fWhatIsAProgram(b: Builder): FoundationsProgram {
-  snapshot(b, "A program is a LIST OF INSTRUCTIONS. The computer runs them ONE at a time, top to bottom — the highlighted line is the one running right now. Watch what each line does to MEMORY (the boxes) and the CONSOLE (the output).", []);
+  snapshot(b, "A program is a LIST OF INSTRUCTIONS. The computer runs them ONE at a time, top to bottom — the highlighted line is the one running right now. Watch what each line does to MEMORY (the boxes) and the CONSOLE (the output). (Tip: type YOUR name in the sidebar and re-run — the program greets you instead.)", []);
 
-  setVar(b, "name", '"Ada"', "string");
-  snapshot(b, 'Line 1 runs: the computer creates a labeled box in memory called `name` and puts the text "Ada" inside it. Then it moves to the next line — always the next line, unless told otherwise.', [1]);
+  setVar(b, "name", `"${name}"`, "string");
+  snapshot(b, `Line 1 runs: the computer creates a labeled box in memory called \`name\` and puts the text "${name}" inside it. Then it moves to the next line — always the next line, unless told otherwise.`, [1]);
   calm(b);
 
-  setVar(b, "greeting", '"Hello, Ada"', "string");
+  setVar(b, "greeting", `"Hello, ${name}"`, "string");
   snapshot(b, "Line 2 runs: the computer LOOKS UP the box `name`, glues the two texts together, and stores the result in a new box `greeting`. Instructions can read memory as well as write it.", [2]);
   calm(b);
 
-  b.consoleLines.push("Hello, Ada");
+  b.consoleLines.push(`Hello, ${name}`);
   snapshot(b, "Line 3 runs: `print` sends the contents of `greeting` to the console — that is how a program talks back to you.", [3]);
 
   b.consoleLines.push("Nice to meet you!");
@@ -90,7 +123,7 @@ function fWhatIsAProgram(b: Builder): FoundationsProgram {
   snapshot(b, "That is ALL a program is: instructions → memory → output. Everything else you will ever learn — loops, functions, data structures — is just clever arrangements of this.", [], {
     message: { text: "INSTRUCTIONS → MEMORY → OUTPUT", tone: "ok" },
   });
-  return done(b, "What Is a Program?", { time: "4 steps", space: "2 boxes" }, WHATIS_PSEUDO);
+  return done(b, "What Is a Program?", { time: "4 steps", space: "2 boxes" }, pseudo);
 }
 
 const VARS_PSEUDO = ["x = 5", "y = x", "x = 10", "print(x)", "print(y)"];
@@ -248,9 +281,16 @@ const C_N4 = "#9ccaff";
 
 const COUNT_PSEUDO = ["biggest = list[0]", "for each item in list:", "  if item > biggest:", "    biggest = item", "return biggest"];
 
-function fCountingSteps(b: Builder): FoundationsProgram {
+function fCountingSteps(b: Builder, customList?: number[]): FoundationsProgram {
+  const base = useList(customList, [3, 7, 2, 9]);
+  const doubled = [...base, ...base.map((x) => x + 1)];
+
   b.counters = [];
-  snapshot(b, `How do we measure "fast"? Not in seconds — computers differ. We COUNT STEPS: every executed line is one step (one tile). Let's find the biggest number in a list and count.`, []);
+  chartInit(b, "steps vs input size", "n (items)", "steps", [
+    { label: "measured steps", color: C_N2, points: [] },
+    refCurve("n (for shape)", "#7a8087", (x) => x, 1, doubled.length),
+  ]);
+  snapshot(b, `How do we measure "fast"? Not in seconds — computers differ. We COUNT STEPS: every executed line is one step (one tile). Let's find the biggest number in a list and count. (Sidebar: paste your OWN list and re-run.)`, []);
 
   const run = (list: number[], color: string) => {
     const row: FoundCounter = { label: `n = ${list.length}`, steps: 0, color, active: true };
@@ -277,14 +317,15 @@ function fCountingSteps(b: Builder): FoundationsProgram {
     }
     row.steps += 1;
     row.active = false;
-    snapshot(b, `Return — 1 step. Total for n = ${list.length}: ${row.steps} steps.`, [5]);
+    chartPush(b, 0, [list.length, row.steps]);
+    snapshot(b, `Return — 1 step. Total for n = ${list.length}: ${row.steps} steps — a new point lands on the GRAPH: (${list.length}, ${row.steps}).`, [5]);
   };
 
-  run([3, 7, 2, 9], C_N1);
+  run(base, C_N1);
   snapshot(b, "Now the interesting question: what happens to the step count if the list gets TWICE as long?", []);
-  run([3, 7, 2, 9, 4, 12, 1, 8], C_N2);
+  run(doubled, C_N2);
 
-  snapshot(b, "Twice the input → roughly twice the tiles. The step count GROWS IN PROPORTION to n. That relationship — not the exact number — is what we call time complexity.", [], {
+  snapshot(b, "Twice the input → roughly twice the tiles — look at the graph: the measured points rise IN PROPORTION to n, hugging the straight dashed line. That relationship — not the exact number — is what we call time complexity.", [], {
     message: { text: "COST = HOW STEPS GROW WITH n", tone: "ok" },
   });
   return done(b, "Counting Steps", { time: "≈ n steps", space: "O(1)" }, COUNT_PSEUDO);
@@ -298,6 +339,10 @@ function fBigO(b: Builder): FoundationsProgram {
     { label: "loop (n = 12)", steps: 0, color: C_N2 },
     { label: "return", steps: 0, color: "#7a8087" },
   ];
+  chartInit(b, "n + 2 vs plain n — same curve", "n", "steps", [
+    { label: "T(n) = n + 2", color: C_N2, points: [] },
+    refCurve("n", "#7a8087", (x) => x, 1, 16),
+  ]);
   snapshot(b, "We counted steps; now let's write the count as a FORMULA and simplify it. That simplified form is Big-O — the universal language for algorithm cost.", [1]);
 
   b.counters[0].steps = 1;
@@ -305,7 +350,8 @@ function fBigO(b: Builder): FoundationsProgram {
 
   for (let k = 3; k <= 12; k += 3) {
     b.counters[1].steps = k;
-    snapshot(b, `The loop runs once per item — for n = 12, that's 12 tiles. This is the part that GROWS when the input grows.`, [3]);
+    for (let x = k - 2; x <= k; x++) chartPush(b, 0, [x, x + 2]);
+    snapshot(b, `The loop runs once per item — for n = 12, that's 12 tiles. This is the part that GROWS when the input grows. On the graph, T(n) = n + 2 is being drawn against plain n.`, [3]);
   }
 
   b.counters[2].steps = 1;
@@ -323,56 +369,92 @@ function fBigO(b: Builder): FoundationsProgram {
   return done(b, "Big-O Notation", { time: "O(n)", space: "O(1)" }, BIGO_PSEUDO);
 }
 
-const GROWTH_PSEUDO = ["for n = 16 items:", "O(1)      1 step      grab by index", "O(log n)  4 steps     halve until found", "O(n)      16 steps    touch every item", "O(n²)     256 steps   compare every pair"];
+function fGrowthRates(b: Builder, value?: number): FoundationsProgram {
+  const N = Math.max(4, Math.min(Number.isFinite(value) && (value ?? 0) > 0 ? Math.round(value!) : 16, 25));
+  const LOG = Math.max(1, Math.ceil(Math.log2(N)));
+  const pseudo = [
+    `for n = ${N} items:`,
+    `O(1)      1 step${" ".repeat(6)}grab by index`,
+    `O(log n)  ${LOG} steps     halve until found`,
+    `O(n)      ${N} steps    touch every item`,
+    `O(n²)     ${N * N} steps   compare every pair`,
+  ];
 
-function fGrowthRates(b: Builder): FoundationsProgram {
   b.counters = [
     { label: "O(1)", steps: 0, color: C_N1 },
     { label: "O(log n)", steps: 0, color: C_N4 },
     { label: "O(n)", steps: 0, color: C_N2 },
     { label: "O(n²)", steps: 0, color: C_N3 },
   ];
-  snapshot(b, "The four growth rates you will meet everywhere, racing on the SAME input: a list of n = 16 items. Watch how differently they scale.", [1]);
+  chartInit(b, "the four curves, same n", "n", "steps", [
+    { label: "O(1)", color: C_N1, points: [] },
+    { label: "O(log n)", color: C_N4, points: [] },
+    { label: "O(n)", color: C_N2, points: [] },
+    { label: "O(n²)", color: C_N3, points: [] },
+  ]);
+  snapshot(b, `The four growth rates you will meet everywhere, racing on the SAME input: a list of n = ${N} items. Watch how differently they scale — tiles pile up, and each racer draws its curve on the graph. (Sidebar: change n and re-run.)`, [1]);
+
+  const fillCurve = (idx: number, fn: (x: number) => number) => {
+    for (let x = 1; x <= N; x++) chartPush(b, idx, [x, fn(x)]);
+  };
 
   b.counters[0].steps = 1;
   b.counters[0].active = true;
-  snapshot(b, "O(1) — constant: grabbing item #7 by index costs 1 step whether the list has 16 items or 16 billion. Arrays give you this.", [2]);
+  fillCurve(0, () => 1);
+  snapshot(b, `O(1) — constant: grabbing item #7 by index costs 1 step whether the list has ${N} items or 16 billion. A perfectly FLAT line. Arrays give you this.`, [2]);
   b.counters[0].active = false;
 
   b.counters[1].active = true;
-  for (let s = 1; s <= 4; s++) {
+  for (let s = 1; s <= LOG; s++) {
     b.counters[1].steps = s;
-    snapshot(b, `O(log n) — halving: binary search cuts the list in half each step. 16 → 8 → 4 → 2 → 1: only ${s === 4 ? "4 steps total" : s + " step(s) so far"}.`, [3]);
+    if (s === 1) fillCurve(1, (x) => Math.max(1, Math.ceil(Math.log2(x + 1))));
+    snapshot(b, `O(log n) — halving: binary search cuts the list in half each step. Only ${s === LOG ? `${LOG} steps total` : `${s} step(s) so far`} — its curve barely lifts off the floor.`, [3]);
   }
   b.counters[1].active = false;
 
   b.counters[2].active = true;
-  for (let s = 4; s <= 16; s += 4) {
-    b.counters[2].steps = s;
-    snapshot(b, `O(n) — linear: checking every item once. ${s} of 16 tiles.`, [4]);
+  const nStep = Math.max(1, Math.ceil(N / 4));
+  for (let s = nStep; s < N + nStep; s += nStep) {
+    const k = Math.min(s, N);
+    b.counters[2].steps = k;
+    if (s === nStep) fillCurve(2, (x) => x);
+    snapshot(b, `O(n) — linear: checking every item once. ${k} of ${N} tiles — a straight diagonal on the graph.`, [4]);
+    if (k === N) break;
   }
   b.counters[2].active = false;
 
   b.counters[3].active = true;
-  for (let s = 64; s <= 256; s += 64) {
-    b.counters[3].steps = s;
-    snapshot(b, `O(n²) — quadratic: comparing every item with every other (like bubble sort). 16 × 16 = 256 tiles… ${s} and counting.`, [5]);
+  const qStep = Math.max(1, Math.ceil((N * N) / 4));
+  for (let s = qStep; s < N * N + qStep; s += qStep) {
+    const k = Math.min(s, N * N);
+    b.counters[3].steps = k;
+    if (s === qStep) fillCurve(3, (x) => x * x);
+    snapshot(b, `O(n²) — quadratic: comparing every item with every other (like bubble sort). ${N} × ${N} = ${N * N} tiles… ${k} and counting. Its curve is the one shooting off the top of the chart.`, [5]);
+    if (k === N * N) break;
   }
   b.counters[3].active = false;
 
   snapshot(b, "Now scale n to 1,000,000: O(1) is still 1 step, O(log n) about 20, O(n) a million — and O(n²) a TRILLION (hours of compute). The gap between these curves is why algorithms matter more than fast computers.", [], {
     message: { text: "AT n = 10⁶: 1 vs 20 vs 10⁶ vs 10¹²", tone: "ok" },
   });
-  return done(b, "Growth Rates", { time: "O(1) → O(n²)", space: "—" }, GROWTH_PSEUDO);
+  return done(b, "Growth Rates", { time: "O(1) → O(n²)", space: "—" }, pseudo);
 }
 
 // --- Complexity analysis (formal) ---------------------------------------------------
 
 const TC_PSEUDO = ["total = 0          // 1 step", "for each item:     // runs n times", "  total = total + item", "return total       // 1 step", "T(n) = n + 2   ← a FUNCTION of n"];
 
-function fTimeComplexity(b: Builder): FoundationsProgram {
+function fTimeComplexity(b: Builder, customList?: number[]): FoundationsProgram {
+  const nBase = customList && customList.length >= 2 ? Math.min(customList.length, 8) : 5;
+  const sizes = Array.from(new Set([Math.max(2, Math.round(nBase / 2) + 1), nBase, Math.min(nBase * 2, 12)]));
+  const maxN = sizes[sizes.length - 1];
+
   b.counters = [];
-  snapshot(b, `Time complexity is a FUNCTION: T(n) = "how many steps for an input of size n". Let's measure the same program at three sizes and read the function right off the tiles.`, [5]);
+  chartInit(b, "T(n) — steps as a function of n", "n", "steps", [
+    { label: "measured T(n)", color: C_N2, points: [] },
+    refCurve("n + 2", "#7a8087", (x) => x + 2, 1, maxN + 2),
+  ]);
+  snapshot(b, `Time complexity is a FUNCTION: T(n) = "how many steps for an input of size n". Let's measure the same program at three sizes and read the function right off the tiles — and off the graph. (Sidebar: give your own list; its length sets n.)`, [5]);
 
   const run = (n: number, color: string) => {
     const row: FoundCounter = { label: `n = ${n}`, steps: 0, color, active: true };
@@ -389,14 +471,14 @@ function fTimeComplexity(b: Builder): FoundationsProgram {
     row.steps += 1;
     row.active = false;
     row.note = `= ${n} + 2`;
-    snapshot(b, `Return: 1 step. Total for n = ${n}: ${n + 2} steps.`, [4]);
+    chartPush(b, 0, [n, n + 2]);
+    snapshot(b, `Return: 1 step. Total for n = ${n}: ${n + 2} steps — point (${n}, ${n + 2}) lands exactly on the dashed n + 2 curve.`, [4]);
   };
 
-  run(3, C_N1);
-  run(5, C_N2);
-  run(8, C_N3);
+  const runColors = [C_N1, C_N2, C_N3];
+  sizes.forEach((n, i) => run(n, runColors[i % runColors.length]));
 
-  snapshot(b, `Read the pattern: 5, 7, 10 steps for n = 3, 5, 8 — always n + 2. That formula IS the time complexity: T(n) = n + 2, which Big-O rounds to O(n). Time complexity is never one number; it is steps AS A FUNCTION of input size.`, [5], {
+  snapshot(b, `Read the pattern: ${sizes.map((n) => n + 2).join(", ")} steps for n = ${sizes.join(", ")} — always n + 2. That formula IS the time complexity: T(n) = n + 2, which Big-O rounds to O(n). Time complexity is never one number; it is steps AS A FUNCTION of input size — the curve on the graph.`, [5], {
     message: { text: "T(n) = n + 2 → O(n)", tone: "ok" },
   });
   return done(b, "Time Complexity", { time: "O(n)", space: "O(1)" }, TC_PSEUDO);
@@ -404,19 +486,28 @@ function fTimeComplexity(b: Builder): FoundationsProgram {
 
 const SC_PSEUDO = ["// reverse a list of n items", "way A: build a reversed COPY", "  → n new boxes of memory", "way B: swap in place with l, r", "  → 2 boxes, no matter how big n is", "space: A = O(n),  B = O(1)"];
 
-function fSpaceComplexity(b: Builder): FoundationsProgram {
-  b.counters = [];
-  snapshot(b, `Time counts steps; SPACE counts extra memory boxes. Same task — reverse a list of 6 — solved two ways with very different memory bills.`, [1]);
+function fSpaceComplexity(b: Builder, customList?: number[]): FoundationsProgram {
+  const list = useList(customList, [1, 2, 3, 4, 5, 6]);
+  const n = list.length;
+  const rev = [...list].reverse();
 
-  setVar(b, "list", "[1,2,3,4,5,6]", "string");
+  b.counters = [];
+  chartInit(b, "extra memory vs n", "n (items)", "boxes", [
+    { label: "way A: copy — n boxes", color: C_N3, points: [] },
+    { label: "way B: in place — 2 boxes", color: C_N1, points: [] },
+  ]);
+  snapshot(b, `Time counts steps; SPACE counts extra memory boxes. Same task — reverse a list of ${n} — solved two ways with very different memory bills. (Sidebar: use your own list.)`, [1]);
+
+  setVar(b, "list", `[${list.join(",")}]`, "string");
   const rowA: FoundCounter = { label: "way A: copy", steps: 0, color: C_N3, active: true };
   b.counters.push(rowA);
   snapshot(b, `Way A: walk the list backwards and append each item to a NEW list. Simple — but every item needs a new box.`, [2]);
-  for (let k = 1; k <= 6; k++) {
+  for (let k = 1; k <= n; k++) {
     rowA.steps = k;
-    if (k % 2 === 0) {
-      setVar(b, "copy", `[${Array.from({ length: k }, (_, i) => 6 - i).join(",")}…]`, "string", "new");
-      snapshot(b, `${k} items copied → ${k} extra boxes allocated. The memory bill grows WITH the input.`, [2, 3]);
+    chartPush(b, 0, [k, k]);
+    if (k % 2 === 0 || k === n) {
+      setVar(b, "copy", `[${rev.slice(0, k).join(",")}${k < n ? "…" : ""}]`, "string", "new");
+      snapshot(b, `${k} items copied → ${k} extra boxes allocated. The memory bill grows WITH the input — watch way A's line climb.`, [2, 3]);
       calm(b);
     }
   }
@@ -428,13 +519,14 @@ function fSpaceComplexity(b: Builder): FoundationsProgram {
   b.counters.push(rowB);
   b.vars = b.vars.filter((v) => v.name !== "copy");
   setVar(b, "l", "0", "number");
-  setVar(b, "r", "5", "number");
+  setVar(b, "r", String(n - 1), "number");
   rowB.steps = 2;
-  snapshot(b, `Way B: two pointers swap ends inward, reusing the list's own boxes. Extra memory: just l and r — 2 boxes.`, [4]);
+  for (let k = 1; k <= n; k++) chartPush(b, 1, [k, 2]);
+  snapshot(b, `Way B: two pointers swap ends inward, reusing the list's own boxes. Extra memory: just l and r — 2 boxes. Its line on the graph is FLAT.`, [4]);
   rowB.active = false;
   rowB.note = "= 2 boxes, always";
-  setVar(b, "list", "[6,5,4,3,2,1]", "string", "new");
-  snapshot(b, `Reversed with the SAME 2 extra boxes whether the list holds 6 items or 6 million — space complexity O(1). Time and space are separate budgets; great algorithms mind both.`, [5, 6], {
+  setVar(b, "list", `[${rev.join(",")}]`, "string", "new");
+  snapshot(b, `Reversed with the SAME 2 extra boxes whether the list holds ${n} items or 6 million — space complexity O(1). Time and space are separate budgets; great algorithms mind both.`, [5, 6], {
     message: { text: "A: O(n) SPACE · B: O(1) SPACE", tone: "ok" },
   });
   return done(b, "Space Complexity", { time: "O(n)", space: "O(1) vs O(n)" }, SC_PSEUDO);
@@ -442,8 +534,14 @@ function fSpaceComplexity(b: Builder): FoundationsProgram {
 
 const CASE_PSEUDO = ["for i = 0 … n−1:", "  if list[i] == target:", "    return i        // found", "return −1           // not found"];
 
-function linearSearchCase(b: Builder, kind: "best" | "worst" | "average"): FoundationsProgram {
-  const list = [7, 3, 9, 4, 2, 8];
+function linearSearchCase(b: Builder, kind: "best" | "worst" | "average", customList?: number[]): FoundationsProgram {
+  const list = useList(customList, [7, 3, 9, 4, 2, 8]);
+  const n = list.length;
+  const absent = Math.max(...list) + 1;
+  const costOf = (target: number) => {
+    const i = list.indexOf(target);
+    return i === -1 ? n : i + 1;
+  };
   b.counters = [];
 
   const search = (target: number, color: string, label: string) => {
@@ -467,28 +565,40 @@ function linearSearchCase(b: Builder, kind: "best" | "worst" | "average"): Found
   };
 
   if (kind === "best") {
-    snapshot(b, `The SAME algorithm can cost wildly different amounts depending on the data. Best case: the luckiest possible input.`, [1]);
-    search(7, C_N1, "target first");
+    snapshot(b, `The SAME algorithm can cost wildly different amounts depending on the data. Best case: the luckiest possible input. (Sidebar: try your own list — the first element is always the lucky one.)`, [1]);
+    search(list[0], C_N1, "target first");
     snapshot(b, `The target sat at index 0 — one comparison, done. Best case = Ω(1) for linear search. Useful to know, but never something to COUNT on: real inputs are rarely this kind.`, [], {
       message: { text: "BEST CASE: 1 STEP — PURE LUCK", tone: "ok" },
     });
     return done(b, "Best Case", { time: "Ω(1)", space: "O(1)" }, CASE_PSEUDO);
   }
   if (kind === "worst") {
+    const lastCost = costOf(list[n - 1]);
     snapshot(b, `Worst case: the UNLUCKIEST input — the one guarantee an algorithm can make. This is what the O(·) badges all over this app describe.`, [1]);
-    search(8, C_N3, "target last");
-    search(99, C_N2, "target absent");
-    snapshot(b, `Target last: ${list.length} comparisons. Target absent: also ${list.length} — the scan can never stop early. Worst case = O(n), and it's the honest number: "no input can cost more than this".`, [], {
-      message: { text: `WORST CASE: n = ${list.length} STEPS, GUARANTEED`, tone: "ok" },
+    search(list[n - 1], C_N3, "target last");
+    search(absent, C_N2, "target absent");
+    snapshot(b, `Target at the end: ${lastCost} comparison(s). Target absent: ${n} — the scan can never stop early. Worst case = O(n), and it's the honest number: "no input can cost more than this".`, [], {
+      message: { text: `WORST CASE: n = ${n} STEPS, GUARANTEED`, tone: "ok" },
     });
     return done(b, "Worst Case", { time: "O(n)", space: "O(1)" }, CASE_PSEUDO);
   }
-  snapshot(b, `Average case: what a TYPICAL input costs — average the cost over all equally-likely target positions.`, [1]);
-  search(3, C_N1, "found at #1");
-  search(4, C_N2, "found at #3");
-  search(8, C_N3, "found at #5");
-  b.counters.push({ label: "average", steps: Math.round((2 + 4 + 6) / 3), color: C_N4, note: "≈ (n+1)/2" });
-  snapshot(b, `Costs of 2, 4 and 6 average to 4 ≈ (n+1)/2. On average a random target sits in the middle — half a scan. Still O(n): a constant factor of ½ doesn't change the growth curve.`, [], {
+
+  // average case — with a cost-vs-position chart
+  const idxs = Array.from(new Set([Math.min(1, n - 1), Math.floor(n / 2), n - 1]));
+  const costs = idxs.map((i) => costOf(list[i]));
+  const avg = costs.reduce((a, c) => a + c, 0) / costs.length;
+  chartInit(b, "cost vs where the target sits", "position", "comparisons", [
+    { label: "cost of this search", color: C_N2, points: [] },
+    { label: `average ≈ ${avg.toFixed(1)}`, color: C_N4, dashed: true, points: [[1, avg], [n, avg]] },
+  ]);
+  snapshot(b, `Average case: what a TYPICAL input costs — average the cost over all equally-likely target positions. Each search will drop a point on the graph.`, [1]);
+  const caseColors = [C_N1, C_N2, C_N3];
+  idxs.forEach((idx, k) => {
+    search(list[idx], caseColors[k % caseColors.length], `found at #${idx + 1}`);
+    chartPush(b, 0, [costOf(list[idx]), costOf(list[idx])]);
+  });
+  b.counters.push({ label: "average", steps: Math.round(avg), color: C_N4, note: "≈ (n+1)/2" });
+  snapshot(b, `Costs of ${costs.join(", ")} average to ${avg.toFixed(1)} ≈ (n+1)/2. On the graph the cost climbs linearly with position, and the dashed line is the average — half a scan. Still O(n): a constant factor of ½ doesn't change the growth curve.`, [], {
     message: { text: "AVERAGE ≈ n/2 — STILL O(n)", tone: "ok" },
   });
   return done(b, "Average Case", { time: "Θ(n)", space: "O(1)" }, CASE_PSEUDO);
@@ -500,9 +610,16 @@ const BOUND_PSEUDO_O = ["f(n) = 2n + 3      // our step count", "claim:  f is O(
 
 function fBigOBound(b: Builder): FoundationsProgram {
   b.counters = [];
-  snapshot(b, `Big-O, precisely this time: f = O(g) means "beyond some point n₀, f(n) never exceeds c·g(n) for a fixed constant c". Let's TEST the claim 2n+3 = O(n) with c = 3.`, [1, 2, 3]);
+  chartInit(b, "f under the ceiling 3n", "n", "cost", [
+    { label: "f(n) = 2n + 3", color: C_N2, points: [] },
+    refCurve("ceiling 3·n", "#7a8087", (x) => 3 * x, 1, 10),
+  ]);
+  snapshot(b, `Big-O, precisely this time: f = O(g) means "beyond some point n₀, f(n) never exceeds c·g(n) for a fixed constant c". Let's TEST the claim 2n+3 = O(n) with c = 3 — watch f's curve against the dashed ceiling.`, [1, 2, 3]);
 
+  let lastX = 0;
   const check = (n: number) => {
+    for (let x = lastX + 1; x <= n; x++) chartPush(b, 0, [x, 2 * x + 3]);
+    lastX = n;
     const f = 2 * n + 3;
     const g = 3 * n;
     const ok = f <= g;
@@ -518,7 +635,8 @@ function fBigOBound(b: Builder): FoundationsProgram {
   check(4);
   check(8);
 
-  snapshot(b, `Below n₀ = 3 the bound may fail; from n₀ on it holds forever. That's the whole definition: f = O(g) ⇔ ∃ c, n₀ such that f(n) ≤ c·g(n) for all n ≥ n₀. Big-O is a CEILING on growth.`, [5], {
+  for (let x = lastX + 1; x <= 10; x++) chartPush(b, 0, [x, 2 * x + 3]);
+  snapshot(b, `Below n₀ = 3 the bound may fail (f starts ABOVE the dashed line); from n₀ on it stays under forever. That's the whole definition: f = O(g) ⇔ ∃ c, n₀ such that f(n) ≤ c·g(n) for all n ≥ n₀. Big-O is a CEILING on growth.`, [5], {
     message: { text: "2n + 3 = O(n) — CEILING", tone: "ok" },
   });
   return done(b, "Big-O (upper bound)", { time: "O(n)", space: "—" }, BOUND_PSEUDO_O);
@@ -528,15 +646,23 @@ const BOUND_PSEUDO_OM = ["f(n) = 2n + 3", "claim:  f is Ω(n)", "pick    c = 1, 
 
 function fBigOmega(b: Builder): FoundationsProgram {
   b.counters = [];
+  chartInit(b, "f above the floor 1·n", "n", "cost", [
+    { label: "f(n) = 2n + 3", color: C_N2, points: [] },
+    refCurve("floor 1·n", "#7a8087", (x) => x, 1, 10),
+  ]);
   snapshot(b, `Big-Ω is Big-O's mirror: a FLOOR. f = Ω(g) means "beyond n₀, f(n) is AT LEAST c·g(n)" — the work never drops below that curve. Test: 2n+3 = Ω(n) with c = 1.`, [1, 2, 3]);
 
+  let lastX = 0;
   for (const n of [2, 4, 8]) {
+    for (let x = lastX + 1; x <= n; x++) chartPush(b, 0, [x, 2 * x + 3]);
+    lastX = n;
     const f = 2 * n + 3;
     b.counters.push({ label: `f(${n}) = ${f}`, steps: f, color: C_N2, active: true });
     b.counters.push({ label: `1·g(${n}) = ${n}`, steps: n, color: "#7a8087", note: "f stays above ✓" });
-    snapshot(b, `n = ${n}: f = ${f} ≥ ${n} = 1·n. The tiles never dip below the floor.`, [4]);
+    snapshot(b, `n = ${n}: f = ${f} ≥ ${n} = 1·n. On the graph f's curve never dips below the dashed floor.`, [4]);
     b.counters.forEach((c) => (c.active = false));
   }
+  for (let x = lastX + 1; x <= 10; x++) chartPush(b, 0, [x, 2 * x + 3]);
 
   snapshot(b, `f = Ω(n): the algorithm ALWAYS does at least linear work. O(·) promises "no worse than"; Ω(·) warns "no better than". Sorting by comparisons, for example, is Ω(n log n) — no algorithm can beat it.`, [5], {
     message: { text: "2n + 3 = Ω(n) — FLOOR", tone: "ok" },
@@ -548,9 +674,17 @@ const BOUND_PSEUDO_TH = ["f(n) = 2n + 3", "floor:    2n + 3 ≥ 1·n   (Ω)", "c
 
 function fBigTheta(b: Builder): FoundationsProgram {
   b.counters = [];
-  snapshot(b, `Big-Θ is the sandwich: f = Θ(g) when f is BOTH O(g) and Ω(g) — squeezed between a floor and a ceiling of the same shape. That pins the growth rate exactly.`, [1]);
+  chartInit(b, "the sandwich: 1n ≤ f ≤ 3n", "n", "cost", [
+    { label: "f(n) = 2n + 3", color: C_N1, points: [] },
+    refCurve("ceiling 3n", "#7a8087", (x) => 3 * x, 1, 10),
+    refCurve("floor 1n", "#7a8087", (x) => x, 1, 10),
+  ]);
+  snapshot(b, `Big-Θ is the sandwich: f = Θ(g) when f is BOTH O(g) and Ω(g) — squeezed between a floor and a ceiling of the same shape. That pins the growth rate exactly. Watch f's curve live strictly between the two dashed lines.`, [1]);
 
+  let lastX = 0;
   for (const n of [4, 8]) {
+    for (let x = lastX + 1; x <= n; x++) chartPush(b, 0, [x, 2 * x + 3]);
+    lastX = n;
     const f = 2 * n + 3;
     b.counters.push({ label: `ceiling 3n = ${3 * n}`, steps: 3 * n, color: "#7a8087" });
     b.counters.push({ label: `f(${n}) = ${f}`, steps: f, color: C_N1, active: true, note: "in the sandwich ✓" });
@@ -558,6 +692,7 @@ function fBigTheta(b: Builder): FoundationsProgram {
     snapshot(b, `n = ${n}: ${n} ≤ ${f} ≤ ${3 * n} — f sits strictly between the two linear curves.`, [2, 3]);
     b.counters.forEach((c) => (c.active = false));
   }
+  for (let x = lastX + 1; x <= 10; x++) chartPush(b, 0, [x, 2 * x + 3]);
 
   snapshot(b, `Squeezed from both sides by multiples of n → f = Θ(n): it grows EXACTLY linearly. Θ is the most honest statement you can make; when people casually say "it's O(n)", they usually mean Θ(n).`, [4, 5], {
     message: { text: "Ω(n) + O(n) = Θ(n) — EXACT", tone: "ok" },
@@ -569,9 +704,16 @@ const BOUND_PSEUDO_LO = ["f(n) = n,   g(n) = n²", "little-o is STRICT: for EVER
 
 function fLittleO(b: Builder): FoundationsProgram {
   b.counters = [];
-  snapshot(b, `little-o is Big-O with the equals sign removed: f = o(g) means f grows STRICTLY slower — for EVERY constant c, c·g eventually dwarfs f. Watch n against n².`, [1, 2]);
+  chartInit(b, "n falls hopelessly behind n²", "n", "cost", [
+    { label: "f(n) = n", color: C_N1, points: [] },
+    refCurve("g(n) = n²", C_N3, (x) => x * x, 1, 8),
+  ]);
+  snapshot(b, `little-o is Big-O with the equals sign removed: f = o(g) means f grows STRICTLY slower — for EVERY constant c, c·g eventually dwarfs f. Watch n against n² on the graph.`, [1, 2]);
 
+  let lastX = 0;
   for (const n of [2, 4, 8]) {
+    for (let x = lastX + 1; x <= n; x++) chartPush(b, 0, [x, x]);
+    lastX = n;
     b.counters.push({ label: `f(${n}) = ${n}`, steps: n, color: C_N1, active: true });
     b.counters.push({ label: `g(${n}) = ${n * n}`, steps: n * n, color: C_N3, note: `ratio f/g = 1/${n}` });
     snapshot(b, `n = ${n}: the ratio f/g = 1/${n}. It isn't just small — it keeps SHRINKING toward zero.`, [3, 4]);
@@ -588,9 +730,16 @@ const BOUND_PSEUDO_LW = ["f(n) = n²,   g(n) = n", "little-ω is STRICT: for EVE
 
 function fLittleOmega(b: Builder): FoundationsProgram {
   b.counters = [];
-  snapshot(b, `little-ω is the strict mirror of Ω: f = ω(g) means f grows STRICTLY faster — it eventually beats c·g for EVERY constant c. Watch n² against n.`, [1, 2]);
+  chartInit(b, "n² leaves n in the dust", "n", "cost", [
+    { label: "f(n) = n²", color: C_N3, points: [] },
+    refCurve("g(n) = n", C_N1, (x) => x, 1, 8),
+  ]);
+  snapshot(b, `little-ω is the strict mirror of Ω: f = ω(g) means f grows STRICTLY faster — it eventually beats c·g for EVERY constant c. Watch n² against n on the graph.`, [1, 2]);
 
+  let lastX = 0;
   for (const n of [2, 4, 8]) {
+    for (let x = lastX + 1; x <= n; x++) chartPush(b, 0, [x, x * x]);
+    lastX = n;
     b.counters.push({ label: `f(${n}) = ${n * n}`, steps: n * n, color: C_N3, active: true });
     b.counters.push({ label: `g(${n}) = ${n}`, steps: n, color: C_N1, note: `ratio f/g = ${n}` });
     snapshot(b, `n = ${n}: the ratio f/g = ${n} — growing without limit.`, [3, 4]);
@@ -624,7 +773,11 @@ const AGG_PSEUDO = ["push(x): if array is full:", "  allocate 2× space, copy ev
 
 function fAggregate(b: Builder): FoundationsProgram {
   b.counters = [];
-  snapshot(b, `Some operations are cheap, a few are expensive — is push "O(1)" or "O(n)"? Amortized analysis answers: charge the TOTAL over a sequence, not the worst single op. Aggregate method: just add everything up.`, [1]);
+  chartInit(b, "spiky actual cost vs flat amortized", "push #", "cost", [
+    { label: "actual cost", color: C_N3, points: [] },
+    { label: "amortized ≈ 3", color: C_N1, dashed: true, points: [[1, 3], [8, 3]] },
+  ]);
+  snapshot(b, `Some operations are cheap, a few are expensive — is push "O(1)" or "O(n)"? Amortized analysis answers: charge the TOTAL over a sequence, not the worst single op. Aggregate method: just add everything up. The graph will show the cost SPIKES.`, [1]);
 
   const costs = pushCosts(8);
   let size = 0;
@@ -638,6 +791,7 @@ function fAggregate(b: Builder): FoundationsProgram {
     setVar(b, "size", String(size), "number", "new");
     setVar(b, "capacity", String(cap), "number", resized ? "new" : "idle");
     b.counters!.push({ label: `push ${i + 1}`, steps: c, color: resized ? C_N3 : C_N1, note: resized ? `resize! copy ${c - 1}` : undefined });
+    chartPush(b, 0, [i + 1, c]);
     snapshot(b, resized
       ? `Push ${i + 1}: the array is FULL — allocate double, copy all ${c - 1} items, then place. Cost ${c}.`
       : `Push ${i + 1}: room available — place it. Cost 1.`, resized ? [1, 2, 3] : [3]);
@@ -656,7 +810,12 @@ const ACC_PSEUDO = ["charge every push 3 coins:", "  1 coin  pays the placement"
 
 function fAccounting(b: Builder): FoundationsProgram {
   b.counters = [];
-  snapshot(b, `Accounting (banker's) method: OVERCHARGE cheap operations and bank the change; expensive operations spend the savings. If the bank never goes negative, the flat charge is the true amortized cost.`, [1]);
+  chartInit(b, "the bank balance never goes negative", "push #", "coins", [
+    { label: "bank balance", color: C_N1, points: [] },
+    { label: "actual cost", color: C_N3, points: [] },
+    { label: "flat charge 3", color: "#7a8087", dashed: true, points: [[1, 3], [8, 3]] },
+  ]);
+  snapshot(b, `Accounting (banker's) method: OVERCHARGE cheap operations and bank the change; expensive operations spend the savings. If the bank never goes negative, the flat charge is the true amortized cost. Watch the BANK line on the graph.`, [1]);
 
   const costs = pushCosts(8);
   let bank = 0;
@@ -667,6 +826,8 @@ function fAccounting(b: Builder): FoundationsProgram {
     bank += 3 - c;
     setVar(b, "bank", String(bank), "number", resized ? "removing" : "new");
     b.counters!.push({ label: `push ${i + 1}`, steps: c, color: resized ? C_N3 : C_N1, note: resized ? `resize — bank → ${bank}` : `+2 banked → ${bank}` });
+    chartPush(b, 0, [i + 1, bank]);
+    chartPush(b, 1, [i + 1, c]);
     snapshot(b, resized
       ? fromBank > 0
         ? `Push ${i + 1} resizes (real cost ${c}): the 3-coin charge covers 3, the BANK pays the remaining ${fromBank} — balance drops to ${bank}, but stays ≥ 0.`
@@ -685,7 +846,12 @@ const POT_PSEUDO = ["Φ(state) = 2·size − capacity   // stored energy", "amor
 
 function fPotential(b: Builder): FoundationsProgram {
   b.counters = [];
-  snapshot(b, `Potential method: define a "stored energy" Φ on the data structure. Cheap operations RAISE Φ; expensive ones RELEASE it. Amortized cost = actual + ΔΦ — and the spikes cancel out.`, [1, 2]);
+  chartInit(b, "energy Φ absorbs the spikes", "push #", "cost / Φ", [
+    { label: "actual cost", color: C_N3, dashed: true, points: [] },
+    { label: "Φ (stored energy)", color: C_N4, points: [] },
+    { label: "amortized", color: C_N1, points: [] },
+  ]);
+  snapshot(b, `Potential method: define a "stored energy" Φ on the data structure. Cheap operations RAISE Φ; expensive ones RELEASE it. Amortized cost = actual + ΔΦ — and the spikes cancel out. Watch all three lines: actual spikes, Φ saw-tooths, amortized stays FLAT.`, [1, 2]);
 
   let size = 0;
   let cap = 1;
@@ -706,6 +872,9 @@ function fPotential(b: Builder): FoundationsProgram {
     setVar(b, "capacity", String(cap), "number", resized ? "new" : "idle");
     setVar(b, "Φ", String(after), "number", resized ? "removing" : "new");
     b.counters!.push({ label: `push ${i + 1}`, steps: amort, color: resized ? C_N2 : C_N1, note: `actual ${c} + ΔΦ ${after - before >= 0 ? "+" : ""}${after - before} = ${amort}` });
+    chartPush(b, 0, [i + 1, c]);
+    chartPush(b, 1, [i + 1, after]);
+    chartPush(b, 2, [i + 1, amort]);
     snapshot(b, resized
       ? `Push ${i + 1} resizes: actual cost ${c} is huge, but Φ CRASHES from ${before} to ${after} (capacity doubled). Amortized = ${c} + (${after} − ${before}) = ${amort}. The stored energy paid for the spike.`
       : `Push ${i + 1} is cheap: actual 1, and Φ rises ${before} → ${after} (energy stored). Amortized = 1 + ${after - before} = ${amort}.`, resized ? [1, 4] : [1, 3]);
@@ -724,15 +893,21 @@ const IND_PSEUDO = ["claim S(n):  1 + 2 + … + n = n(n+1)/2", "base:  S(1) → 
 
 function fInduction(b: Builder): FoundationsProgram {
   b.counters = [];
+  chartInit(b, "measured sums land on the formula", "n", "1 + 2 + … + n", [
+    { label: "measured sum", color: C_N1, points: [] },
+    refCurve("n(n+1)/2", "#7a8087", (x) => (x * (x + 1)) / 2, 1, 6),
+  ]);
   snapshot(b, `How do you prove something for EVERY n — infinitely many cases — with finite work? Induction: prove the first domino falls, and that each domino knocks over the next.`, [1]);
 
   b.counters.push({ label: "n = 1", steps: 1, color: C_N1, note: "= 1·2/2 = 1 ✓" });
+  chartPush(b, 0, [1, 1]);
   snapshot(b, `BASE CASE: n = 1. The sum is 1; the formula says 1·2/2 = 1. First domino: down.`, [2]);
 
   const cases: [number, string][] = [[2, C_N2], [3, C_N3], [4, C_N4]];
   for (const [k, color] of cases) {
     const sum = (k * (k + 1)) / 2;
     b.counters.push({ label: `n = ${k}`, steps: sum, color, active: true, note: `= ${k}·${k + 1}/2 = ${sum} ✓` });
+    chartPush(b, 0, [k, sum]);
     snapshot(b, `INDUCTIVE STEP: assume the formula holds for ${k - 1} (tiles above ✓). Add ${k} more tiles: ${((k - 1) * k) / 2} + ${k} = ${sum} — and the formula for ${k} predicts ${k}·${k + 1}/2 = ${sum}. It matches; domino ${k} falls because domino ${k - 1} fell.`, [3, 4]);
     b.counters.forEach((c) => (c.active = false));
   }
@@ -747,6 +922,10 @@ const REC_PSEUDO = ["T(n) = T(n/2) + 1,   T(1) = 1   // binary search", "unroll:
 
 function fRecurrence(b: Builder): FoundationsProgram {
   b.counters = [];
+  chartInit(b, "T(n) traces the log curve", "n", "T(n)", [
+    { label: "measured T(n)", color: C_N1, points: [] },
+    refCurve("log₂n + 1", "#7a8087", (x) => Math.log2(x) + 1, 1, 16),
+  ]);
   snapshot(b, `Recursive code gets a recursive cost formula — a RECURRENCE. Binary search does 1 comparison, then recurses on HALF: T(n) = T(n/2) + 1. Solve it by unrolling.`, [1]);
 
   setVar(b, "n", "8", "number");
@@ -757,13 +936,16 @@ function fRecurrence(b: Builder): FoundationsProgram {
   for (const [from, to, line] of levels) {
     row.steps += 1;
     setVar(b, "n", String(to), "number", "new");
-    snapshot(b, `T(${from}) = T(${to}) + 1 — pay one comparison (one tile), and the problem HALVES: ${from} → ${to}.`, [line]);
+    chartPush(b, 0, [from, Math.log2(from) + 1]);
+    snapshot(b, `T(${from}) = T(${to}) + 1 — pay one comparison (one tile), and the problem HALVES: ${from} → ${to}. Point (${from}, ${Math.log2(from) + 1}) lands on the log curve.`, [line]);
     calm(b);
   }
   row.steps += 1;
   row.active = false;
   row.note = "= log₂8 + 1";
-  snapshot(b, `T(1) = 1 — the base case pays its single step. Count the tiles: 3 halvings + 1 base = 4 = log₂8 + 1.`, [5]);
+  chartPush(b, 0, [1, 1]);
+  b.chart!.series[0].points.sort((p, q) => p[0] - q[0]);
+  snapshot(b, `T(1) = 1 — the base case pays its single step. Count the tiles: 3 halvings + 1 base = 4 = log₂8 + 1. The measured points trace the dashed logarithm exactly.`, [5]);
 
   snapshot(b, `The answer was hiding in one question: "how many times can n halve before hitting 1?" — log₂n. So T(n) = O(log n). Other famous recurrences solve the same way: T(n) = 2T(n/2) + n (merge sort) unrolls to n·log n. Recurrences are how every divide-and-conquer cost in this app was derived.`, [6], {
     message: { text: "T(n) = T(n/2) + 1 → O(log n)", tone: "ok" },
@@ -775,6 +957,10 @@ function fRecurrence(b: Builder): FoundationsProgram {
 
 export interface FoundationsRunParams {
   value?: number;
+  /** Custom list, e.g. from the sidebar "5, 3, 8, 1" input. */
+  list?: number[];
+  /** Custom text (e.g. your name for the hello program). */
+  text?: string;
 }
 
 export function runFoundationsOperation(
@@ -783,10 +969,11 @@ export function runFoundationsOperation(
 ): FoundationsProgram {
   const b = newB();
   const value = params.value ?? 0;
+  const list = params.list;
 
   switch (op) {
     case "fWhatIsAProgram":
-      return fWhatIsAProgram(b);
+      return fWhatIsAProgram(b, params.text);
     case "fVariables":
       return fVariables(b);
     case "fDatatypes":
@@ -796,21 +983,21 @@ export function runFoundationsOperation(
     case "fLoops":
       return fLoops(b, value || 4);
     case "fCountingSteps":
-      return fCountingSteps(b);
+      return fCountingSteps(b, list);
     case "fBigO":
       return fBigO(b);
     case "fGrowthRates":
-      return fGrowthRates(b);
+      return fGrowthRates(b, value || undefined);
     case "fTimeComplexity":
-      return fTimeComplexity(b);
+      return fTimeComplexity(b, list);
     case "fSpaceComplexity":
-      return fSpaceComplexity(b);
+      return fSpaceComplexity(b, list);
     case "fBestCase":
-      return linearSearchCase(b, "best");
+      return linearSearchCase(b, "best", list);
     case "fWorstCase":
-      return linearSearchCase(b, "worst");
+      return linearSearchCase(b, "worst", list);
     case "fAverageCase":
-      return linearSearchCase(b, "average");
+      return linearSearchCase(b, "average", list);
     case "fBigOBound":
       return fBigOBound(b);
     case "fBigOmega":
@@ -840,24 +1027,24 @@ export interface FoundationsOperationMeta {
   id: FoundationsOperationId;
   label: string;
   icon: string;
-  params: "value"[];
+  params: ("value" | "list" | "text")[];
   hint: string;
 }
 
 export const FOUNDATIONS_OPERATIONS: FoundationsOperationMeta[] = [
-  { id: "fWhatIsAProgram", label: "What is a Program?", icon: "smart_toy", params: [], hint: "Instructions → memory → output." },
+  { id: "fWhatIsAProgram", label: "What is a Program?", icon: "smart_toy", params: ["text"], hint: "Instructions → memory → output. Type your name — the program greets YOU." },
   { id: "fVariables", label: "Variables", icon: "inventory_2", params: [], hint: "Labeled boxes; assignment overwrites." },
   { id: "fDatatypes", label: "Datatypes", icon: "category", params: [], hint: "The type decides what + means." },
   { id: "fConditionals", label: "Conditionals", icon: "alt_route", params: ["value"], hint: "A question picks the path (value = age)." },
   { id: "fLoops", label: "Loops", icon: "repeat", params: ["value"], hint: "The counter jumps backwards (value = laps)." },
-  { id: "fCountingSteps", label: "Counting Steps", icon: "timer", params: [], hint: "Cost = executed lines, not seconds." },
+  { id: "fCountingSteps", label: "Counting Steps", icon: "timer", params: ["list"], hint: "Cost = executed lines, not seconds. Paste your own list." },
   { id: "fBigO", label: "Big-O Notation", icon: "functions", params: [], hint: "Keep the growing part, drop the rest." },
-  { id: "fGrowthRates", label: "Growth Rates", icon: "trending_up", params: [], hint: "O(1) / O(log n) / O(n) / O(n²) race." },
-  { id: "fTimeComplexity", label: "Time Complexity", icon: "schedule", params: [], hint: "T(n): steps as a FUNCTION of n." },
-  { id: "fSpaceComplexity", label: "Space Complexity", icon: "memory", params: [], hint: "Count extra memory boxes, not steps." },
-  { id: "fBestCase", label: "Best Case", icon: "sentiment_satisfied", params: [], hint: "The luckiest input — Ω-style." },
-  { id: "fWorstCase", label: "Worst Case", icon: "sentiment_dissatisfied", params: [], hint: "The guarantee — what O(·) badges mean." },
-  { id: "fAverageCase", label: "Average Case", icon: "sentiment_neutral", params: [], hint: "Expected cost over typical inputs." },
+  { id: "fGrowthRates", label: "Growth Rates", icon: "trending_up", params: ["value"], hint: "O(1) / O(log n) / O(n) / O(n²) race — set n (4–25)." },
+  { id: "fTimeComplexity", label: "Time Complexity", icon: "schedule", params: ["list"], hint: "T(n): steps as a FUNCTION of n. Your list's length sets n." },
+  { id: "fSpaceComplexity", label: "Space Complexity", icon: "memory", params: ["list"], hint: "Count extra memory boxes, not steps. Bring your own list." },
+  { id: "fBestCase", label: "Best Case", icon: "sentiment_satisfied", params: ["list"], hint: "The luckiest input — Ω-style." },
+  { id: "fWorstCase", label: "Worst Case", icon: "sentiment_dissatisfied", params: ["list"], hint: "The guarantee — what O(·) badges mean." },
+  { id: "fAverageCase", label: "Average Case", icon: "sentiment_neutral", params: ["list"], hint: "Expected cost over typical inputs." },
   { id: "fBigOBound", label: "Big-O", icon: "vertical_align_top", params: [], hint: "Ceiling: f ≤ c·g beyond n₀." },
   { id: "fBigOmega", label: "Big-Ω", icon: "vertical_align_bottom", params: [], hint: "Floor: f ≥ c·g beyond n₀." },
   { id: "fBigTheta", label: "Big-Θ", icon: "vertical_align_center", params: [], hint: "Sandwich: O and Ω of the same g." },
