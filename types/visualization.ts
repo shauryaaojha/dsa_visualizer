@@ -719,3 +719,223 @@ export type StringOperationId =
   | "strAnagram"
   | "strFirstUnique"
   | "strCommonPrefix";
+
+// --- OOP visualization -------------------------------------------------------
+// One shared frame schema drives every OOP animation. A frame shows three
+// memory regions — CLASS AREA (blueprint boxes + statics + relation arrows),
+// STACK (named references) and HEAP (objects with layered fields + vtables) —
+// plus at most a couple of animated method-call arrows and an output strip.
+// SOLID pages use only the class area (empty heap/refs); pattern pages are
+// heap-heavy. Steps carry a language-agnostic `anchor` instead of raw line
+// numbers: each Java/C++/Python code sample maps anchors to ITS OWN lines.
+
+export type OopsAccess = "public" | "private" | "protected";
+export type OopsLanguage = "java" | "cpp" | "python";
+
+export interface OopsMember {
+  id: string;
+  /** e.g. "balance: int" or "deposit(amount)" — access glyph drawn by canvas. */
+  name: string;
+  kind: "field" | "method";
+  access: OopsAccess;
+  isStatic?: boolean; // rendered underlined (UML convention)
+  isAbstract?: boolean; // rendered italic
+  isFinal?: boolean; // lock glyph
+  state: SQCellState;
+  note?: string; // "overridden", "= 0"
+}
+
+/** A class box in the CLASS AREA column — also doubles as a mini UML node. */
+export interface OopsClassBox {
+  id: string;
+  name: string;
+  stereotype?: "abstract" | "interface";
+  members: OopsMember[];
+  /** Static values live IN the class box, not in objects. */
+  statics?: { name: string; value: string; state: SQCellState }[];
+  /** Grid coords (col, row) — canvas maps to px. */
+  x: number;
+  y: number;
+  state: SQCellState;
+}
+
+export interface OopsRelation {
+  id: string;
+  from: string; // OopsClassBox id (child / dependent)
+  to: string; // OopsClassBox id (parent / target)
+  kind: "extends" | "implements" | "association" | "aggregation" | "composition" | "dependency";
+  state: "idle" | "active" | "new" | "removing";
+  label?: string;
+}
+
+export interface OopsObjectField {
+  id: string;
+  name: string;
+  value: string;
+  /** Declaring class — inheritance draws layered compartments per class. */
+  from?: string;
+  access: OopsAccess;
+  state: SQCellState;
+}
+
+/** A heap object: fake address, per-class field layers, optional vtable. */
+export interface OopsHeapObject {
+  id: string;
+  className: string;
+  addr: string; // "AA" — same fake-address trick as the stack/list engines
+  fields: OopsObjectField[];
+  vtable?: { method: string; impl: string; state: SQCellState }[];
+  state: SQCellState;
+  /** Being constructed / just freed — hovers outside the heap row. */
+  floating?: boolean;
+}
+
+/** A named reference in the STACK column (like the HEAD/TOP pointer boxes). */
+export interface OopsRef {
+  id: string;
+  name: string; // "a"
+  declaredType: string; // "Animal"
+  targetId: string | null; // heap object id; null = null reference
+  state: SQCellState;
+}
+
+/** An animated call/access arrow. */
+export interface OopsCall {
+  id: string;
+  from: "main" | string; // ref id, or "main" for top-level code
+  toObjectId?: string; // instance call target
+  toClassId?: string; // static call / new / blocked-at-class target
+  method: string; // "speak()"
+  phase: "calling" | "resolving" | "returned" | "blocked";
+  result?: string; // return-value chip text
+  note?: string; // "private — access denied"
+}
+
+export interface OopsStep {
+  classes: OopsClassBox[];
+  relations: OopsRelation[];
+  heap: OopsHeapObject[];
+  refs: OopsRef[];
+  calls: OopsCall[];
+  /** Program output so far (console strip). */
+  output?: TokenChip[];
+  message?: { text: string; tone: "ok" | "error" | "info" };
+  description: string;
+  /** Semantic anchor into the code samples (resolved per language). */
+  anchor?: string;
+}
+
+export interface OopsProgram {
+  steps: OopsStep[];
+  title: string;
+  /** Key into OOPS_CODE — the real Java/C++/Python samples for the rail. */
+  codeKey: string;
+  complexity?: Complexity;
+}
+
+export type OopsOperationId =
+  | "classesObjects"
+  | "constructors"
+  | "thisReferences"
+  | "accessModifiers"
+  | "encapsulation"
+  | "inheritance"
+  | "overloading"
+  | "overriding"
+  | "abstraction"
+  | "interfacesVsAbstract"
+  | "staticFinal"
+  | "compositionVsInheritance"
+  | "srp"
+  | "ocp"
+  | "lsp"
+  | "isp"
+  | "dip"
+  | "singleton"
+  | "factoryMethod"
+  | "observer"
+  | "strategy"
+  | "decorator";
+
+// ---------------------------------------------------------------------------
+// Hashing visualization
+//
+// One frame shape drives three canvas layouts (HashMode):
+//   "calc"     — hash-function pages: a worked-arithmetic panel + a row of m
+//                buckets the key drops into.
+//   "open"     — open addressing: a row of m cells with numbered probe badges.
+//   "chaining" — separate chaining: a column of m index slots, each owning a
+//                linked chain of entries drawn to the right.
+// The `calc` panel is the heart of the section: every op shows the REAL
+// arithmetic (quotient/remainder, k·A fraction, digit folding, rolling hash)
+// line by line, not just the final index.
+// ---------------------------------------------------------------------------
+
+export type HashMode = "calc" | "open" | "chaining";
+
+export interface HashEntryVis {
+  id: string;
+  /** Display key: "27", "\"hello\"" … */
+  key: string;
+  state: SQCellState;
+  /** Small annotation (e.g. "moved from 3" after a rehash). */
+  note?: string;
+}
+
+export interface HashSlotVis {
+  index: number;
+  state: SQCellState;
+  /** Chaining: the whole chain head→tail. Open addressing: 0 or 1 entries. */
+  entries: HashEntryVis[];
+}
+
+export interface HashCalcLine {
+  text: string;
+  state: "active" | "done";
+}
+
+/** One probe of an open-addressing sequence, badged above the slot. */
+export interface HashProbe {
+  index: number;
+  /** i in the probe sequence (0, 1, 2 …). */
+  order: number;
+  hit: "occupied" | "free" | "match" | "miss";
+}
+
+export interface HashStep {
+  slots: HashSlotVis[];
+  /** Worked arithmetic, revealed line by line. */
+  calc?: { title: string; lines: HashCalcLine[] };
+  /** The key currently being hashed (chip above the table). */
+  incoming?: { key: string; state: SQCellState };
+  probes?: HashProbe[];
+  /** Load-factor meter (α = n/m) — shown when the op cares about it. */
+  load?: { n: number; m: number };
+  message?: { text: string; tone: "ok" | "error" | "info" };
+  description: string;
+  codeLines?: number[];
+}
+
+export interface HashProgram {
+  steps: HashStep[];
+  complexity: Complexity;
+  pseudocode: string[];
+  title: string;
+  mode: HashMode;
+  /** Table size the program ENDS with (rehash can grow it mid-run). */
+  m: number;
+}
+
+export type HashOperationId =
+  | "divisionMethod"
+  | "multiplicationMethod"
+  | "foldingMethod"
+  | "stringHashing"
+  | "htInsert"
+  | "htSearch"
+  | "htDelete"
+  | "loadFactor"
+  | "chaining"
+  | "linearProbing"
+  | "quadraticProbing"
+  | "doubleHashing";

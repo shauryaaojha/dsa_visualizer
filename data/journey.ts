@@ -102,6 +102,32 @@ export const JOURNEY: JourneyStage[] = [
       "Total freedom costs algorithms their innocence: traversal needs visited-sets, shortest paths need Dijkstra, and many graph questions are famously hard.",
     realWorld: "Google Maps, social networks, the internet itself: nodes and edges, with cycles and many routes between two points.",
   },
+  {
+    slug: "hashing",
+    title: "Hashing",
+    icon: "tag",
+    accent: "#34C98A",
+    problem:
+      "Arrays give O(1) access — but only by INDEX. Looking something up by KEY (a roll number, a username, a word) still means searching: O(n) in an array, O(log n) even in a balanced tree.",
+    idea:
+      "Don't search for where a key is — COMPUTE it. A hash function h(k) turns the key itself into its slot: one arithmetic step replaces the entire search. The dictionary jumps straight to the page.",
+    tradeoff:
+      "Different keys can hash to the same slot — collisions are guaranteed by pigeonhole. All the machinery (chaining, probing, load factors, rehashing) exists to tame them; a bad hash function quietly degrades O(1) back to O(n). And you give up order: no min, no max, no ranges.",
+    realWorld: "Python dicts, Java HashMaps, database indexes, caches, password stores — nearly every 'look it up by name' in computing is a hash table.",
+  },
+  {
+    slug: "oops",
+    title: "OOP",
+    icon: "deployed_code",
+    accent: "#F5A623",
+    problem:
+      "Data structures organise DATA — but as programs grow, the CODE around them sprawls: functions and the structs they mutate drift apart, and any line can corrupt any variable. Changing one struct breaks fifty scattered functions.",
+    idea:
+      "Fuse state and behaviour into OBJECTS. Each object guards its own data (encapsulation) and exposes verbs; hierarchies share and specialise behaviour (inheritance, polymorphism). You model the problem as collaborating objects, not a pile of functions.",
+    tradeoff:
+      "Objects add indirection and ceremony — over-engineered hierarchies and design-pattern soup are real hazards. Knowing WHEN a plain function is enough is half the skill.",
+    realWorld: "A vending machine you operate by its buttons, never its wires: the four pillars, SOLID and patterns are how large systems stay changeable.",
+  },
 ];
 
 /** Hub-page callout: "why did we need this structure?" — keyed by section slug. */

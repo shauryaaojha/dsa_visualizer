@@ -39,6 +39,8 @@ export function theoryKey(path: string): string {
   if (parts[1] === "graphs") return "g:" + parts.slice(2).join("/");
   if (parts[1] === "foundations") return "fd:" + parts.slice(2).join("/");
   if (parts[1] === "strings") return "str:" + parts.slice(2).join("/");
+  if (parts[1] === "oops") return "oo:" + parts.slice(2).join("/");
+  if (parts[1] === "hashing") return "h:" + parts.slice(2).join("/");
   // arrays (and future sections): category/leaf
   return parts.slice(2).join("/");
 }
@@ -1157,6 +1159,372 @@ const THEORY: Record<string, TheoryDoc> = {
     sections: [
       s("Idea", "Vertical scanning: look at column 0 of every word, then column 1, and so on. A column joins the prefix only if EVERY word agrees on it; the first disagreement (or the shortest word ending) stops the scan."),
       s("Cost", "At worst you look at every character of every word once: O(total characters). The answer is at most as long as the shortest word."),
+    ],
+  },
+
+  // --- OOP · fundamentals -------------------------------------------------
+  "oo:fundamentals/classes-and-objects": {
+    title: "Classes & Objects",
+    summary: "A class is a blueprint; an object is a concrete instance stamped from it.",
+    sections: [
+      s("Class vs object", "A class declares STATE (fields) and BEHAVIOUR (methods) but occupies no data memory itself — it is a template. An object is a concrete value built from that template with `new` (Java/C++) or by calling the class (Python). One class can produce unlimited objects, each with its own copy of the fields."),
+      s("What `new` does", "`new Dog(...)` allocates a fresh block on the heap sized for a Dog, runs the constructor to fill the fields, and returns a reference (an address) that you store in a variable. The variable is not the object — it points at it."),
+      s("Shared code, separate state", "Methods live once with the class; every object runs the same method code but on its OWN fields. rex.bark() and buddy.bark() execute identical instructions yet print different names — that is the entire value proposition of objects."),
+      s("Java vs C++ vs Python", "Java/Python objects always live on the heap and are reached through references. C++ lets you put an object directly on the stack (`Dog d;`) or on the heap (`new Dog`); only the heap form needs manual `delete`."),
+    ],
+  },
+  "oo:fundamentals/constructors-destructors": {
+    title: "Constructors & Destructors",
+    summary: "Constructors build an object base → derived; destruction unwinds it in reverse.",
+    sections: [
+      s("Constructor chaining", "When a Dog extends Animal, constructing a Dog runs Animal's constructor FIRST (via `super()` / the implicit base call), then Dog's. The parent layer must be valid before the child layer builds on it — always top-of-hierarchy down."),
+      s("Destructors / cleanup", "C++ has destructors (`~Dog()`) that run automatically at end of scope, in REVERSE order: ~Dog() then ~Animal(). This is where RAII frees resources. Java and Python have no deterministic destructors — a garbage collector reclaims an object some time after the last reference disappears (Python also offers `__del__`, but timing isn't guaranteed)."),
+      s("Why order matters", "Base-first construction means a child constructor can safely use inherited fields. Reverse destruction means a child can clean up its own resources before the base part it depends on is torn down."),
+    ],
+  },
+  "oo:fundamentals/this-and-references": {
+    title: "this & References",
+    summary: "A reference is a handle to an object; many handles can share one object.",
+    sections: [
+      s("Reference vs object", "`Point b = a;` copies the REFERENCE, not the object. Now a and b are two names for the same heap object (aliasing). Writing b.x = 99 is visible through a — there is only one object."),
+      s("this", "Inside a method, `this` (or `self` in Python) is the reference to the object the method was called on. `this.x = x` disambiguates the field from a parameter of the same name and is how a method reaches its own object's state."),
+      s("Lifetime & garbage collection", "An object lives as long as at least one reference points to it. Setting a = null removes one handle; the object survives while b still holds it. When the last reference drops, the object becomes unreachable and is eligible for GC (Java/Python) or must be `delete`d (C++), or you get a leak."),
+    ],
+  },
+  "oo:fundamentals/access-modifiers": {
+    title: "Access Modifiers",
+    summary: "public / private / protected control who may touch each member.",
+    sections: [
+      s("The three levels", "PUBLIC (+) is reachable from anywhere. PRIVATE (−) is reachable only inside the same class. PROTECTED (#) is reachable inside the class and its subclasses. They are the enforcement mechanism behind encapsulation."),
+      s("Why hide fields", "Making a field private and exposing a public getter/setter lets the class guard its invariants — nobody can set balance to a negative number behind its back. The public methods are the sanctioned door; the field is the walled-off room."),
+      s("Language differences", "Java and C++ enforce access at compile time — `acc.balance` simply won't compile. Python has no true private: a leading underscore is a convention, and `__balance` is only name-mangled (still reachable as `_BankAccount__balance`). The discipline is cultural rather than enforced."),
+    ],
+  },
+
+  // --- OOP · four pillars -------------------------------------------------
+  "oo:four-pillars/encapsulation": {
+    title: "Encapsulation",
+    summary: "Bundle data with the methods that guard it; expose behaviour, hide state.",
+    sections: [
+      s("The idea", "Encapsulation is the first pillar: keep an object's fields private and force all changes through public methods that can VALIDATE them. The object becomes responsible for its own consistency — no outside code can put it in an illegal state."),
+      s("Invariants", "A class invariant is a rule that must always hold (a balance never goes negative through a deposit, a date's month is 1–12). Private fields + guarded setters are how you keep an invariant true no matter how the object is used."),
+      s("Not just getters/setters", "Encapsulation isn't 'wrap every field in getX/setX'. It's exposing meaningful operations (deposit, withdraw) and hiding the representation, so you can later change how balance is stored without breaking any caller."),
+    ],
+  },
+  "oo:four-pillars/inheritance": {
+    title: "Inheritance",
+    summary: "A subclass IS-A superclass — it reuses and extends the parent's members.",
+    sections: [
+      s("IS-A reuse", "Inheritance expresses an IS-A relationship: a Dog IS-A Animal. Dog automatically gets Animal's fields and methods and can add its own. It is code reuse plus a type relationship — a Dog can be used wherever an Animal is expected."),
+      s("Method resolution", "When you call dog.eat() and Dog has no eat(), the runtime walks UP the inheritance chain until it finds one (here, on Animal). This lookup is why an inherited method 'just works' on a subclass object."),
+      s("Use with care", "Inheritance is tight coupling: a change to the parent ripples to every child. Deep hierarchies are fragile. The guideline 'favour composition over inheritance' exists because HAS-A is often more flexible than IS-A — see the Composition vs Inheritance page."),
+    ],
+  },
+  "oo:four-pillars/polymorphism/method-overloading": {
+    title: "Method Overloading",
+    summary: "Same method name, different parameter lists — resolved at compile time.",
+    sections: [
+      s("Compile-time polymorphism", "Overloading lets one name have several signatures: print(int), print(String), print(int,int). The COMPILER picks which one to call by looking at the number and types of the arguments at the call site — before the program runs. It's also called static or early binding."),
+      s("Signature, not return type", "Overloads must differ in their parameter list. You cannot overload on return type alone — the compiler couldn't tell them apart at a call like `print(x);` where the result is ignored."),
+      s("Language notes", "Java and C++ support overloading natively. Python does NOT — a later `def print` simply replaces the earlier one; the idiomatic substitutes are default arguments, *args, or functools.singledispatch."),
+    ],
+  },
+  "oo:four-pillars/polymorphism/method-overriding": {
+    title: "Method Overriding",
+    summary: "A subclass replaces an inherited method; the OBJECT picks it at runtime.",
+    sections: [
+      s("Runtime polymorphism", "Overriding gives a subclass its own version of a method with the SAME signature. When you call a.speak() through a base-type reference, the actual object's version runs — chosen at runtime by a lookup in the object's virtual method table (vtable). Also called dynamic or late binding."),
+      s("The killer property", "`Animal a = new Dog(); a.speak();` prints Woof even though a is typed Animal. Reassign a to a Cat and the SAME call site prints Meow. One piece of code drives many behaviours — this is what lets you write `for (Animal x : zoo) x.speak();` and have each animal do the right thing."),
+      s("How C++/Java/Python differ", "C++ dispatches dynamically only for `virtual` methods (otherwise it's static). Java methods are virtual by default (unless final/static/private). Python is always dynamic — it looks the method up on type(obj) every call."),
+    ],
+  },
+  "oo:four-pillars/abstraction": {
+    title: "Abstraction",
+    summary: "Expose an essential contract; hide the implementation. Abstract classes can't be instantiated.",
+    sections: [
+      s("What vs how", "Abstraction means programming to an idea rather than a concrete type. An abstract class Shape declares area() with no body — it states WHAT a shape must provide, leaving HOW to each concrete subclass (Circle, Square)."),
+      s("Why you can't instantiate it", "`new Shape()` is forbidden because area() has no implementation — there is no complete object to run. You instantiate concrete subclasses, but you can hold them through a Shape reference and call area() polymorphically."),
+      s("Abstraction vs encapsulation", "They're complementary: encapsulation hides DATA (private fields), abstraction hides IMPLEMENTATION behind a simpler interface (abstract methods / interfaces). Together they let callers depend only on what a type does, not how it does it."),
+    ],
+  },
+
+  // --- OOP · advanced ----------------------------------------------------
+  "oo:advanced/interfaces-vs-abstract": {
+    title: "Interfaces vs Abstract Classes",
+    summary: "An interface is a pure contract; an abstract class is a partly-built base.",
+    sections: [
+      s("The difference", "An abstract class can have fields, constructors, and some implemented methods alongside its abstract ones — it's a partially-built base you extend. An interface (classically) has no fields and no bodies — it's a pure list of capabilities a class promises to provide."),
+      s("Single vs multiple", "A class can extend only ONE class but implement MANY interfaces. Interfaces are how single-inheritance languages let a type take on several unrelated contracts — a Duck can be a Bird AND a Swimmer AND a Quacker."),
+      s("When to use which", "Use an abstract class when subclasses share state and code (a common base). Use an interface to declare a capability that unrelated classes can each fulfil their own way. C++ has no separate `interface` keyword — an all-pure-virtual class plays that role; Python uses ABCs or Protocols."),
+    ],
+  },
+  "oo:advanced/static-and-final": {
+    title: "static & final",
+    summary: "static = one copy per class; final = write-once. Independent modifiers.",
+    sections: [
+      s("static — class-area members", "A static field belongs to the CLASS, not to any object — there is exactly one copy, shared by all instances, and you access it as Counter.count without needing an object. Static methods likewise run without an instance. Use it for shared counters, caches, and utility functions."),
+      s("final / const — write-once", "A final field (const in C++) can be assigned once and never reassigned — the compiler rejects any later write. It's how you declare constants and immutable references. final on a method blocks overriding; final on a class blocks subclassing."),
+      s("They're orthogonal", "static and final are different axes. `static final int MAX` is a class-wide constant (one copy, never changes). A field can be static-only, final-only, both, or neither. Python has neither as a hard rule — class attributes are shared (static-like), and UPPER_CASE names are a constant convention only."),
+    ],
+  },
+  "oo:advanced/composition-vs-inheritance": {
+    title: "Composition vs Inheritance",
+    summary: "IS-A (inheritance) vs HAS-A (composition) — and why to prefer the latter.",
+    sections: [
+      s("Two ways to reuse", "Inheritance reuses code by extending a base class (a Car IS-A Vehicle). Composition reuses code by holding another object and delegating to it (a Car HAS-A Engine and calls engine.start()). Both avoid duplication, but they couple very differently."),
+      s("Why favour composition", "Inheritance is rigid: a subclass is welded to its parent's interface and internals, and a change to the parent can silently break every child (the fragile base class problem). Composition is loose: the Car only depends on Engine's public methods, and you can swap in a different Engine — even at runtime."),
+      s("The guideline", "'Favour composition over inheritance' doesn't ban inheritance — use it for genuine IS-A relationships with real substitutability (see Liskov). But when you're tempted to inherit just to reuse a few methods, holding the object as a field is usually more flexible and less brittle."),
+    ],
+  },
+
+  // --- OOP · UML ---------------------------------------------------------
+  "oo:uml-diagrams/class-relationships": {
+    title: "Class Relationships",
+    summary: "The six lines that connect classes — and how to read each arrowhead.",
+    sections: [
+      s("Association", "A solid line with an open arrow: one class uses or references another (an Order references a Customer). The most general link — 'these two know about each other'."),
+      s("Aggregation vs Composition", "Both are HAS-A, drawn with a diamond at the WHOLE. A hollow diamond (aggregation) means the part can outlive the whole — a Team and its Players. A filled diamond (composition) means the part's lifetime is bound to the whole — a House and its Rooms; destroy the House and the Rooms go too."),
+      s("Inheritance vs Realization", "Both use a hollow triangle pointing at the parent. A SOLID line is inheritance (extends a class — IS-A). A DASHED line is realization (implements an interface). That solid-vs-dashed distinction is the only visual difference."),
+      s("Dependency", "A dashed line with an open arrow: a transient 'uses' — a class takes another as a method parameter or local variable but doesn't store it. Weaker than association."),
+    ],
+  },
+  "oo:uml-diagrams/class-diagram": {
+    title: "Class Diagram",
+    summary: "The static structure: classes as three-compartment boxes joined by relationships.",
+    sections: [
+      s("The box", "Each class is a box with three compartments: name (italic + «abstract»/«interface» if applicable), attributes, and methods. Visibility is marked with + public, − private, # protected. Underlined members are static."),
+      s("Reading the whole", "A class diagram shows the system's vocabulary and how the pieces relate — which classes own which (composition/aggregation), which extend or implement others (inheritance/realization), and which merely use others (association/dependency). It's the blueprint you draw before writing the classes."),
+      s("From diagram to code", "Every arrow maps to code: composition → a field the class constructs and owns; association → a field or reference; inheritance → extends; realization → implements. The Library example here uses all of them at once."),
+    ],
+  },
+  "oo:uml-diagrams/use-case-diagram": {
+    title: "Use Case Diagram",
+    summary: "The system's behaviour from the outside: actors, use cases, and a boundary.",
+    sections: [
+      s("Actors and use cases", "An actor (stick figure) is anyone/anything outside the system that interacts with it — a Customer, an external Bank. A use case (oval) is a goal the system helps an actor achieve — Withdraw Cash, Check Balance. A plain line associates an actor with the use cases it participates in."),
+      s("The boundary", "The rectangle is the system boundary. Use cases sit INSIDE it (the system's responsibilities); actors sit OUTSIDE (they are not part of the system). It answers 'what is in scope?'"),
+      s("«include» and «extend»", "«include» (dashed arrow to the included case) factors out a mandatory shared sub-behaviour — every transaction includes Authenticate. «extend» (dashed arrow to the base case) adds OPTIONAL behaviour under a condition — Print Receipt extends Withdraw. Include = always; extend = sometimes."),
+    ],
+  },
+
+  // --- OOP · design patterns ---------------------------------------------
+  "oo:design-patterns/singleton": {
+    title: "Singleton",
+    summary: "Guarantee a class has exactly one instance, globally reachable.",
+    sections: [
+      s("Intent", "Some things should exist once — a configuration, a connection pool, a logger. Singleton makes the class itself responsible for that: a private constructor blocks outside `new`, and a static getInstance() creates the sole instance lazily on first call, then returns the same object every time after."),
+      s("How it works", "The instance is held in a private static field, initially null. getInstance() checks it: if null, construct and store; always return it. Two callers of getInstance() get the identical object — a == b is true. See the class-diagram page for the UML view."),
+      s("Use sparingly", "A Singleton is global mutable state wearing a class costume. It couples callers to a concrete class, hides dependencies, and makes unit testing hard (you can't easily substitute a fake). Prefer passing the object in (dependency injection) when you can. In multithreaded code, naive lazy init needs locking or an eager/holder idiom."),
+    ],
+  },
+  "oo:design-patterns/factory-method": {
+    title: "Factory Method",
+    summary: "Delegate object creation to a method, so callers depend on an interface, not a concrete class.",
+    sections: [
+      s("Intent", "Instead of scattering `new Circle()` / `new Square()` through your code, you ask a factory: create(\"circle\"). The factory decides which concrete class to instantiate and returns it as the product interface (Shape). The caller never names the concrete type."),
+      s("Why it helps", "Creation logic lives in ONE place. Add a new shape and only the factory changes — every caller keeps working. It also lets you centralise complex construction (pooling, config-driven choices) behind a simple call."),
+      s("Related", "This is the simple/static factory form. The full Factory Method pattern makes create() an overridable method on a base class so SUBCLASSES choose the product. Abstract Factory goes further, producing whole families of related objects."),
+    ],
+  },
+  "oo:design-patterns/observer": {
+    title: "Observer",
+    summary: "When one object changes state, all its dependents are notified automatically.",
+    sections: [
+      s("Intent", "A subject maintains a list of observers and, on any change, calls each one's update(). Publishers and subscribers are decoupled: the subject doesn't know or care who is listening, and observers can attach/detach at runtime."),
+      s("The flow", "Observers attach() to the subject. When an event happens, publish() loops the list and notifies each — a fan-out. detach() removes one; the next publish simply skips it. This is the backbone of event systems, UI data-binding, and pub/sub messaging."),
+      s("Watch out", "Notification order isn't guaranteed; an observer that throws can disrupt the fan-out; and forgetting to detach a dead observer is a classic memory leak (the lapsed-listener problem). Keep update() fast and side-effect-light."),
+    ],
+  },
+  "oo:design-patterns/strategy": {
+    title: "Strategy",
+    summary: "Encapsulate interchangeable algorithms as objects and swap them at runtime.",
+    sections: [
+      s("Intent", "A family of algorithms (sorts, pricing rules, compression schemes) each become a class implementing a common interface. A Context holds one as a field and delegates to it — and you can replace it at runtime with setStrategy()."),
+      s("Composition over conditionals", "Strategy replaces a big if/else or switch that picks behaviour with a plugged-in object. Same call site (context.run()), different behaviour depending on which strategy is installed — no branching in the context, and new algorithms don't touch existing code."),
+      s("Relation to polymorphism", "Strategy IS runtime polymorphism applied deliberately to a whole algorithm. It's the composition-based cousin of overriding: instead of subclassing the Context, you hand it a behaviour object. That's why it's so flexible — you can change strategy per instance, per call, even mid-run."),
+    ],
+  },
+  "oo:design-patterns/decorator": {
+    title: "Decorator",
+    summary: "Attach responsibilities to an object by wrapping it in another object of the same type.",
+    sections: [
+      s("Intent", "A decorator implements the same interface as the thing it wraps and holds a reference to it. Its methods call the inner object and add something — extra cost, extra formatting, extra logging. Because wrapper and wrapped share a type, you can stack decorators arbitrarily: Sugar(Milk(Espresso()))."),
+      s("The cascade", "cost() on the outermost wrapper calls inward — Sugar → Milk → Espresso — until the base returns 5, then each layer adds its bit on the way back out: 5 → 6.5 → 7. Each decorator is oblivious to the others; it only knows its immediate inner object."),
+      s("Why not subclassing", "Adding every combination by inheritance explodes (MilkCoffee, SugarCoffee, MilkSugarCoffee…). Decorators compose at runtime, so N features give you 2^N combinations from N small classes. This is 'favour composition over inheritance' in pattern form."),
+    ],
+  },
+
+  // --- OOP · SOLID -------------------------------------------------------
+  "oo:solid-principles/single-responsibility": {
+    title: "Single Responsibility Principle",
+    summary: "A class should have one, and only one, reason to change.",
+    sections: [
+      s("The principle", "Every class should do ONE thing. 'Reason to change' means a source of change — formatting rules, storage format, delivery mechanism. If a Report both formats HTML and writes files, a change to either forces you to open the same class, and the two concerns can break each other."),
+      s("The fix", "Separate the responsibilities into their own classes: Report (generation), ReportFormatter, ReportSaver, ReportMailer. Each has a single reason to change, is easier to test in isolation, and can be reused independently."),
+      s("Signs of violation", "A class with 'and' in its description, methods that touch unrelated data, or a name like Manager/Util/Helper that does a bit of everything. Cohesion is the goal: everything in the class should serve one purpose."),
+    ],
+  },
+  "oo:solid-principles/open-closed": {
+    title: "Open/Closed Principle",
+    summary: "Software entities should be open for extension but closed for modification.",
+    sections: [
+      s("The principle", "You should be able to add new behaviour WITHOUT editing existing, tested code. The classic smell is a method with an if/else or switch over a type tag that grows every time a new case appears — each edit risks breaking the cases already there."),
+      s("The fix", "Use polymorphism. Define a Shape interface with area(); each shape implements its own. Adding a Triangle means writing a new class that implements Shape — the AreaCalc / caller never changes. New code extends the system; old code stays closed."),
+      s("Balance", "You can't make everything extensible up front — that's over-engineering. Apply OCP where change is likely (new shapes, new payment methods) and identified by experience, not everywhere speculatively."),
+    ],
+  },
+  "oo:solid-principles/liskov-substitution": {
+    title: "Liskov Substitution Principle",
+    summary: "Objects of a subclass must be usable anywhere the superclass is expected, without surprises.",
+    sections: [
+      s("The principle", "If S is a subtype of T, you should be able to substitute an S wherever a T is expected and the program stays correct. Subclasses must honour the base class's contract — same expectations, no strengthened preconditions or weakened postconditions."),
+      s("The classic violation", "Square extends Rectangle seems natural (a square IS-A rectangle), but overriding setWidth to also change height breaks code that sets width and height independently: setW(5); setH(4) should give area 20, but a Square gives 16. The subtype surprises callers who trust the Rectangle contract."),
+      s("The fix", "Don't force an IS-A that doesn't hold behaviourally. Give Rectangle and Square a common Shape interface instead of an inheritance link. If a subclass can't fully honour the base contract, it shouldn't inherit from it."),
+    ],
+  },
+  "oo:solid-principles/interface-segregation": {
+    title: "Interface Segregation Principle",
+    summary: "No client should be forced to depend on methods it does not use.",
+    sections: [
+      s("The principle", "Prefer many small, focused interfaces over one large 'fat' one. A fat interface forces implementers to provide methods that make no sense for them, coupling them to behaviour they don't need."),
+      s("The classic violation", "A Worker interface with work() and eat(). A Robot implements Worker and is forced to stub out eat() — robots don't eat. The Robot now depends on a method it can't meaningfully implement."),
+      s("The fix", "Split Worker into Workable and Eatable. A Human implements both; a Robot implements only Workable. Each class depends on exactly the capabilities it has. ISP is SRP applied to interfaces."),
+    ],
+  },
+  "oo:solid-principles/dependency-inversion": {
+    title: "Dependency Inversion Principle",
+    summary: "Depend on abstractions, not concretions — high- and low-level modules both depend on interfaces.",
+    sections: [
+      s("The principle", "High-level modules (business policy) should not depend on low-level modules (details). Both should depend on abstractions. And abstractions should not depend on details — details depend on abstractions. This 'inverts' the usual top-down dependency direction."),
+      s("The classic violation", "A Notifier that does `new EmailSender()` internally is welded to a concrete class. To send SMS you must edit Notifier. The high-level policy depends directly on a low-level detail."),
+      s("The fix", "Introduce a MessageSender interface. Notifier depends on MessageSender (the abstraction); EmailSender and SmsSender implement it. The dependency arrow FLIPS — now the detail points at the abstraction, and you inject whichever sender you want (dependency injection) without touching Notifier. This is what makes code testable: pass in a fake sender."),
+    ],
+  },
+
+  // --- Hashing · hash functions -------------------------------------------
+  "h:hash-functions/division-method": {
+    title: "Division Method",
+    summary: "h(k) = k mod m — the remainder after dividing by the table size.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "A hash function must squeeze any key into 0…m−1. The remainder of k ÷ m does exactly that by construction: take out every whole m, and what's left is always a valid slot. Computing it is one division — O(1)."),
+      s("The full calculation", "k mod m is defined as k − ⌊k/m⌋·m. For k = 85, m = 7: the quotient ⌊85/7⌋ = 12 says seven fits 12 whole times (84); the remainder 85 − 84 = 1 is the slot."),
+      s("Why m should be prime", "With m = 10 the remainder is literally the key's last digit; with m = 2^p it's the low p bits. Real keys share suffixes and bit patterns (IDs ending in 0, aligned addresses), so such m values funnel many keys into few slots. A prime not close to a power of 2 or 10 forces every digit of the key to influence the slot."),
+      s("Watch out", "For negative keys, the % operator in C/Java can return a negative value — normalise with ((k % m) + m) % m."),
+    ],
+  },
+  "h:hash-functions/multiplication-method": {
+    title: "Multiplication Method",
+    summary: "h(k) = ⌊m · frac(k·A)⌋ — scatter comes from multiplying, not dividing.",
+    complexity: { time: "O(1)", space: "O(1)" },
+    sections: [
+      s("Idea", "Multiply the key by a constant 0 < A < 1, throw away the integer part, and scale the fraction up to the table: h(k) = ⌊m · frac(k·A)⌋. The fractional part behaves almost like a random number in [0,1), so keys spread evenly."),
+      s("Knuth's constant", "A = (√5 − 1)/2 ≈ 0.6180339887 (the golden ratio conjugate) is the classic choice: successive keys k, k+1, k+2… land maximally far apart, because the golden ratio is the 'most irrational' number."),
+      s("Why m doesn't matter", "Unlike the division method, m only scales the final fraction — it can be a convenient power of 2 (and in that form the whole thing reduces to a multiply and a bit-shift, which is why real hash tables like it)."),
+    ],
+  },
+  "h:hash-functions/folding-method": {
+    title: "Folding Method",
+    summary: "Split a long key's digits into groups, add them, then mod m.",
+    complexity: { time: "O(d)", space: "O(1)" },
+    sections: [
+      s("Idea", "For long keys (phone numbers, IDs, ISBNs) chop the digit string into fixed-size groups, sum the groups, and finish with sum mod m. 123456 → 12 + 34 + 56 = 102 → 102 mod m."),
+      s("Why fold at all", "Every group — and therefore every digit — contributes to the sum, so keys that share a long fixed prefix (like an area code) still spread out based on the digits that differ. Plain k mod m on a huge key also works, but folding keeps the arithmetic small and treats all parts of the key equally."),
+      s("Variant", "Fold-boundary reverses every other group before adding (12 + 43 + 56), which breaks up symmetric keys even further."),
+    ],
+  },
+  "h:hash-functions/string-hashing": {
+    title: "String Hashing (Polynomial Rolling)",
+    summary: "Treat characters as digits of a base-31 number, reduced mod m at each step.",
+    complexity: { time: "O(L)", space: "O(1)" },
+    sections: [
+      s("Idea", "A string is hashed character by character: h = (h·31 + code(c)) mod m. Each step shifts the previous characters 'one digit left' in base 31 and adds the new character — the string becomes one big number without ever overflowing, because mod is applied every step."),
+      s("Why 31", "A small odd prime: multiplication by 31 mixes bits well (and compilers turn it into a shift-and-subtract). Java's String.hashCode uses exactly this recurrence. Any prime clearly larger than the alphabet works."),
+      s("Order matters", "Because of the multiplication, \"ab\" ≠ \"ba\": 'a' contributes ×31 more when it comes first. A plain SUM of character codes would collide on every anagram — the polynomial form is what distinguishes arrangements."),
+      s("Where you've met it", "Rabin–Karp substring search rolls this hash across a text window; hash maps with string keys (dict, HashMap) all run a variant of it."),
+    ],
+  },
+
+  // --- Hashing · table operations ------------------------------------------
+  "h:hash-table/insert": {
+    title: "Hash Table Insert",
+    summary: "Hash to one slot, check its chain for a duplicate, insert at the head.",
+    complexity: { time: "O(1+α)", space: "O(1)" },
+    sections: [
+      s("Idea", "Insert never scans the table. h(key) names the one slot the key can live in; walk that slot's chain to reject duplicates; then link the new node at the chain's HEAD — one pointer swap, O(1)."),
+      s("Why 1 + α", "The hash costs O(1); the duplicate walk costs the chain's length, which averages α = n/m. Keep α bounded (rehash when it grows) and insert is O(1) expected."),
+      s("Head vs tail", "Inserting at the head needs no walk to the end and no tail pointer — and recently inserted keys are often the next ones searched, so they sit at the front."),
+    ],
+  },
+  "h:hash-table/search": {
+    title: "Hash Table Search",
+    summary: "One hash, one chain — the other m−1 slots are never touched.",
+    complexity: { time: "O(1+α)", space: "O(1)" },
+    sections: [
+      s("Idea", "The same-key-same-slot guarantee cuts the search space from n keys to one chain: if the key exists, it MUST be in chain[h(key)] — nowhere else. Walk that chain comparing keys; hitting NULL proves absence."),
+      s("Contrast", "Unsorted array: O(n). Sorted array: O(log n) but O(n) inserts. BST: O(log n) if balanced. Hash table: O(1+α) expected — the fastest known dictionary, bought by giving up ORDER (no min, no max, no range queries)."),
+      s("Worst case", "If a terrible hash sent all n keys to one slot, search degrades to O(n) — the table becomes a linked list wearing a costume. Everything rests on the hash function spreading keys."),
+    ],
+  },
+  "h:hash-table/delete": {
+    title: "Hash Table Delete",
+    summary: "Hash, walk to the node, unlink it — a linked-list deletion in one bucket.",
+    complexity: { time: "O(1+α)", space: "O(1)" },
+    sections: [
+      s("Idea", "Delete = search + unlink. Hash to the slot, walk the chain keeping a prev pointer; when the key matches, route prev.next around the node and free it. No shifting, no compaction — chains absorb removals gracefully."),
+      s("Chaining's advantage", "This is where separate chaining beats open addressing: probing schemes can't just empty a slot (it would break other keys' probe paths — they need 'deleted' tombstones), but a chain node can simply vanish."),
+    ],
+  },
+  "h:hash-table/load-factor-rehashing": {
+    title: "Load Factor & Rehashing",
+    summary: "α = n/m is the expected chain length; crossing a threshold triggers a full rebuild.",
+    complexity: { time: "O(1) amortized", space: "O(n)" },
+    sections: [
+      s("Idea", "The load factor α = n/m is both 'how full is the table' and 'how long is the average chain' — i.e. it IS the expected cost of every operation. Small α = fast but wasteful; large α = compact but slow."),
+      s("Rehashing", "When α crosses a threshold (0.75 is the classic, used by Java's HashMap), allocate a bigger table (roughly double, kept prime/odd) and re-insert every key. Positions change because h(k) = k mod m depends on m — the old slots are meaningless in the new table."),
+      s("Amortized O(1)", "A rehash costs O(n), but doubling means it happens after n more inserts — spread across them, each insert pays O(1) extra. Same argument as a dynamic array's growth."),
+    ],
+  },
+
+  // --- Hashing · collision resolution ---------------------------------------
+  "h:collision-resolution/separate-chaining": {
+    title: "Separate Chaining",
+    summary: "Each slot owns a linked list; colliding keys simply join it.",
+    complexity: { time: "O(1+α)", space: "O(n+m)" },
+    sections: [
+      s("Idea", "By pigeonhole, more keys than slots GUARANTEES collisions — they must be handled, not avoided. Chaining's answer: a slot isn't a box holding one key, it's the head of a linked list holding all keys that hash there."),
+      s("Costs", "Insert at head: O(1) always. Search/delete: walk one chain, expected length α = n/m. The table can even hold MORE keys than slots (α > 1) and just degrades gradually."),
+      s("Worst case", "A bad hash (or adversarial keys) sends everything to one slot: one chain of length n, O(n) operations. Java 8's HashMap converts chains longer than 8 into red-black trees to cap this at O(log n)."),
+    ],
+  },
+  "h:collision-resolution/linear-probing": {
+    title: "Linear Probing",
+    summary: "On collision, try (h+1), (h+2)… — simple and cache-friendly, but clusters feed themselves.",
+    complexity: { time: "O(1) avg · O(n) worst", space: "O(m)" },
+    sections: [
+      s("Idea", "Open addressing keeps everything inside the array: no chains, no pointers. Linear probing resolves a collision by trying the very next slot, (h(k)+i) mod m for i = 0, 1, 2…, until a free one appears."),
+      s("Why it's fast in practice", "The probe sequence is sequential memory — exactly what CPU caches love. Modern tables (Python's dict ancestry, Rust's hashbrown lineage) are open-addressed for this reason."),
+      s("Primary clustering", "Occupied slots form runs. Any key hashing ANYWHERE inside a run must probe to its end — and then extends the run by one. Long runs therefore grow faster than short ones: clusters feed themselves, and performance decays sharply as α → 1. Open addressing needs α kept well below 1 (α ≤ 0.5–0.7)."),
+    ],
+  },
+  "h:collision-resolution/quadratic-probing": {
+    title: "Quadratic Probing",
+    summary: "Probe (h+1²), (h+2²), (h+3²)… — leap over clusters instead of extending them.",
+    complexity: { time: "O(1) avg", space: "O(m)" },
+    sections: [
+      s("Idea", "Same open-addressing skeleton, but the i-th probe jumps i² slots from home: +1, +4, +9, +16… Colliding keys vault over an occupied run rather than piling onto its edge — primary clustering disappears."),
+      s("Secondary clustering", "Keys with the SAME home slot still follow the SAME probe path (home+1, home+4, …), so they queue up behind each other. Milder than primary clustering, but not gone."),
+      s("The guarantee's fine print", "Quadratic probing is only guaranteed to find a free slot when m is prime and α < 0.5 — the square jumps visit only about half the slots. Break the preconditions and an insert can cycle forever among occupied slots."),
+    ],
+  },
+  "h:collision-resolution/double-hashing": {
+    title: "Double Hashing",
+    summary: "A second hash sets a per-key step size: probe (h₁ + i·h₂) mod m.",
+    complexity: { time: "O(1) avg", space: "O(m)" },
+    sections: [
+      s("Idea", "The strongest open-addressing scheme: h₁(k) picks the home slot, h₂(k) picks THAT KEY's personal stride, and probe i lands on (h₁ + i·h₂) mod m. Two keys colliding on h₁ almost never share h₂ — their probe paths split at the first step."),
+      s("Choosing h₂", "h₂ must never be 0 (the probe would stand still) and should be co-prime with m so the sequence visits every slot. The standard recipe: h₂(k) = 1 + (k mod (m−1)) with m prime — the +1 kills the zero, the primes handle co-primality."),
+      s("The trade", "No primary or secondary clustering, probe sequences behave nearly like random permutations — at the cost of computing a second hash and losing linear probing's sequential cache access."),
     ],
   },
 };

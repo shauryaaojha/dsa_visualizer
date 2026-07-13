@@ -623,24 +623,169 @@ const strings: SectionMeta = {
   ],
 };
 
-// --- Other sections (folders exist; pages built later) ---------------------
+// --- OOP (Object-Oriented Programming) -------------------------------------
+// Grows category-by-category as each phase ships. Every leaf is a concept page
+// (theory + real Java/C++/Python code + an animated memory visualizer); the
+// uml-diagrams category is reactflow-based instead.
 
-const soon = (
-  slug: string,
-  title: string,
-  icon: string,
-  blurb: string,
-): SectionMeta => ({ slug, title, icon, blurb, status: "soon", categories: [] });
+const oops: SectionMeta = {
+  slug: "oops",
+  title: "OOP",
+  blurb: "Objects fuse state and behaviour — the four pillars, SOLID, patterns and UML.",
+  icon: "deployed_code",
+  status: "available",
+  categories: [
+    {
+      slug: "fundamentals",
+      title: "Fundamentals",
+      blurb: "Classes, objects, constructors and access — the vocabulary of OOP.",
+      icon: "foundation",
+      status: "available",
+      leaves: [
+        { slug: "classes-and-objects", title: "Classes & Objects", blurb: "A class is a blueprint; new stamps objects onto the heap.", icon: "deployed_code" },
+        { slug: "constructors-destructors", title: "Constructors & Destructors", blurb: "Birth and death of an object — chaining up the hierarchy.", icon: "build" },
+        { slug: "this-and-references", title: "this & References", blurb: "Two references, one object — aliasing, null and this.", icon: "alt_route" },
+        { slug: "access-modifiers", title: "Access Modifiers", blurb: "public / private / protected — who may touch what.", icon: "lock" },
+      ],
+    },
+    {
+      slug: "four-pillars",
+      title: "The Four Pillars",
+      blurb: "Encapsulation, inheritance, polymorphism, abstraction — the load-bearing ideas.",
+      icon: "account_balance",
+      status: "available",
+      leaves: [
+        { slug: "encapsulation", title: "Encapsulation", blurb: "Guard state behind methods — invariants survive.", icon: "shield" },
+        { slug: "inheritance", title: "Inheritance", blurb: "IS-A: derived objects carry their parent's layer.", icon: "account_tree" },
+        {
+          slug: "polymorphism",
+          title: "Polymorphism",
+          blurb: "One interface, many behaviours — chosen at compile time or runtime.",
+          icon: "sync_alt",
+          children: [
+            { slug: "method-overloading", title: "Method Overloading", blurb: "Compile time: the signature picks the method.", icon: "call_split" },
+            { slug: "method-overriding", title: "Method Overriding", blurb: "Runtime: the object picks the method — vtable dispatch.", icon: "sync_alt" },
+          ],
+        },
+        { slug: "abstraction", title: "Abstraction", blurb: "Promise the WHAT, hide the HOW — abstract classes.", icon: "category" },
+      ],
+    },
+    {
+      slug: "advanced",
+      title: "Advanced Concepts",
+      blurb: "Interfaces, class-area members, and choosing HAS-A over IS-A.",
+      icon: "bolt",
+      status: "available",
+      leaves: [
+        { slug: "interfaces-vs-abstract", title: "Interfaces vs Abstract", blurb: "Contract vs half-built class — and mixing in many contracts.", icon: "handshake" },
+        { slug: "static-and-final", title: "static & final", blurb: "One-per-class storage and write-once constants.", icon: "pin" },
+        { slug: "composition-vs-inheritance", title: "Composition vs Inheritance", blurb: "HAS-A vs IS-A — and why composition often wins.", icon: "widgets" },
+      ],
+    },
+    {
+      slug: "uml-diagrams",
+      title: "UML Diagrams",
+      blurb: "Draw the design: the six class relationships, class diagrams and use cases.",
+      icon: "schema",
+      status: "available",
+      leaves: [
+        { slug: "class-relationships", title: "Class Relationships", blurb: "The six arrows: association → composition → inheritance.", icon: "hub" },
+        { slug: "class-diagram", title: "Class Diagram", blurb: "Boxes + arrows for a whole system — Shapes, a Library.", icon: "account_tree" },
+        { slug: "use-case-diagram", title: "Use Case Diagram", blurb: "Actors, ovals and the system boundary — an ATM, a shop.", icon: "person" },
+      ],
+    },
+    {
+      slug: "design-patterns",
+      title: "Design Patterns",
+      blurb: "Battle-tested solutions — Singleton, Factory, Observer, Strategy, Decorator.",
+      icon: "extension",
+      status: "available",
+      leaves: [
+        { slug: "singleton", title: "Singleton", blurb: "One instance, globally reachable — lazily created.", icon: "looks_one" },
+        { slug: "factory-method", title: "Factory Method", blurb: "Let a factory decide which object to create.", icon: "precision_manufacturing" },
+        { slug: "observer", title: "Observer", blurb: "One subject changes; every subscriber hears about it.", icon: "podcasts" },
+        { slug: "strategy", title: "Strategy", blurb: "Swap the algorithm object at runtime.", icon: "swap_calls" },
+        { slug: "decorator", title: "Decorator", blurb: "Wrap objects in objects — stack behaviour like layers.", icon: "layers" },
+      ],
+    },
+    {
+      slug: "solid-principles",
+      title: "SOLID Principles",
+      blurb: "Five guidelines that keep class designs flexible and changeable.",
+      icon: "verified",
+      status: "available",
+      leaves: [
+        { slug: "single-responsibility", title: "Single Responsibility", blurb: "One class, one reason to change.", icon: "filter_1" },
+        { slug: "open-closed", title: "Open/Closed", blurb: "Open to extension, closed to modification.", icon: "lock_open" },
+        { slug: "liskov-substitution", title: "Liskov Substitution", blurb: "Subtypes must be drop-in replacements.", icon: "swap_vert" },
+        { slug: "interface-segregation", title: "Interface Segregation", blurb: "No client forced to depend on unused methods.", icon: "call_split" },
+        { slug: "dependency-inversion", title: "Dependency Inversion", blurb: "Depend on abstractions, not concretions.", icon: "flip" },
+      ],
+    },
+  ],
+};
+
+// --- Hashing (fully built) ---------------------------------------------------
+
+const hashing: SectionMeta = {
+  slug: "hashing",
+  title: "Hashing",
+  blurb: "Compute where a key lives: h(k) → index. O(1) lookups, if collisions are tamed.",
+  icon: "tag",
+  status: "available",
+  categories: [
+    {
+      slug: "hash-functions",
+      title: "Hash Functions",
+      blurb: "The arithmetic that turns a key into a table index — worked out digit by digit.",
+      icon: "functions",
+      status: "available",
+      leaves: [
+        { slug: "division-method", title: "Division Method", blurb: "h(k) = k mod m — quotient, remainder, and why m should be prime.", icon: "percent", complexity: { time: "O(1)", space: "O(1)" } },
+        { slug: "multiplication-method", title: "Multiplication Method", blurb: "h(k) = ⌊m·frac(k·A)⌋ with Knuth's golden-ratio A.", icon: "close", complexity: { time: "O(1)", space: "O(1)" } },
+        { slug: "folding-method", title: "Folding Method", blurb: "Chop long keys into digit groups, sum, then mod m.", icon: "content_cut", complexity: { time: "O(d)", space: "O(1)" } },
+        { slug: "string-hashing", title: "String Hashing", blurb: "Rolling hash: h = (h·31 + code) mod m, char by char.", icon: "abc", complexity: { time: "O(L)", space: "O(1)" } },
+      ],
+    },
+    {
+      slug: "hash-table",
+      title: "Hash Table Operations",
+      blurb: "Insert, search, delete in one hashed slot — and what the load factor forces.",
+      icon: "grid_on",
+      status: "available",
+      leaves: [
+        { slug: "insert", title: "Insert", blurb: "Hash → duplicate check → O(1) head insert.", icon: "add_box", complexity: { time: "O(1+α)", space: "O(1)" } },
+        { slug: "search", title: "Search", blurb: "Hash once, walk ONE chain — never the whole table.", icon: "search", complexity: { time: "O(1+α)", space: "O(1)" } },
+        { slug: "delete", title: "Delete", blurb: "Hash, walk, unlink — a one-bucket list deletion.", icon: "delete", complexity: { time: "O(1+α)", space: "O(1)" } },
+        { slug: "load-factor-rehashing", title: "Load Factor & Rehashing", blurb: "α = n/m climbs past 0.75 → grow and re-place every key.", icon: "speed", complexity: { time: "O(1) amortized", space: "O(n)" } },
+      ],
+    },
+    {
+      slug: "collision-resolution",
+      title: "Collision Resolution",
+      blurb: "Two keys, one slot: chain them, or probe the table for another home.",
+      icon: "call_merge",
+      status: "available",
+      leaves: [
+        { slug: "separate-chaining", title: "Separate Chaining", blurb: "Each slot owns a linked list; collisions join it.", icon: "link", complexity: { time: "O(1+α)", space: "O(n+m)" } },
+        { slug: "linear-probing", title: "Linear Probing", blurb: "(h+i) mod m — step right until free; clusters grow.", icon: "arrow_forward", complexity: { time: "O(1) avg", space: "O(m)" } },
+        { slug: "quadratic-probing", title: "Quadratic Probing", blurb: "(h+i²) mod m — square jumps leap over clusters.", icon: "moving", complexity: { time: "O(1) avg", space: "O(m)" } },
+        { slug: "double-hashing", title: "Double Hashing", blurb: "(h₁+i·h₂) mod m — a second hash sets the step size.", icon: "tag", complexity: { time: "O(1) avg", space: "O(m)" } },
+      ],
+    },
+  ],
+};
 
 export const SECTIONS: SectionMeta[] = [
   foundations,
+  oops,
   arrays,
   linkedList,
   stacks,
   queues,
   trees,
   graphs,
-  soon("hashing", "Hashing", "tag", "Hash tables and collision resolution."),
+  hashing,
   strings,
 ];
 

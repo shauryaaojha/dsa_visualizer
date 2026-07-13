@@ -74,11 +74,53 @@ topics/
 ├── queues/             simple, circular, deque, priority-queue
 ├── trees/              binary-tree, BST, AVL, heaps, trie
 ├── graphs/             representation, traversal, shortest-path, MST, connectivity
-├── hashing/            hash-table, collision-resolution
-└── strings/            basic-operations, pattern-matching
+├── hashing/
+│   ├── hash-functions/      division-method, multiplication-method,
+│   │                        folding-method, string-hashing
+│   ├── hash-table/          insert, search, delete, load-factor-rehashing
+│   └── collision-resolution/  separate-chaining, linear-probing,
+│                              quadratic-probing, double-hashing
+├── strings/            basic-operations, pattern-matching
+└── oops/               ← Object-Oriented Programming (paradigm section)
+    ├── fundamentals/       classes-and-objects, constructors-destructors,
+    │                       this-and-references, access-modifiers
+    ├── four-pillars/       encapsulation, inheritance,
+    │                       polymorphism/(method-overloading, method-overriding),
+    │                       abstraction
+    ├── advanced/           interfaces-vs-abstract, static-and-final,
+    │                       composition-vs-inheritance
+    ├── solid-principles/   single-responsibility … dependency-inversion
+    ├── design-patterns/    singleton, factory-method, observer, strategy, decorator
+    └── uml-diagrams/       class-relationships, class-diagram, use-case-diagram
 ```
 
 (See the folders themselves for the full leaf list — the tree is authoritative.)
+
+### The OOP section — two extra archetypes
+
+Most OOP leaves follow the standard engine → store → player pattern (§4) with an
+OOP-specific twist, and the UML leaves use a different renderer entirely:
+
+- **OOP concept visualizer.** `engines/oopsEngine.ts` compiles each concept into
+  an `OopsProgram` of frames showing three memory regions (CLASS AREA / STACK /
+  HEAP) plus method-call arrows. `lib/oopsStore.ts` plays it and additionally
+  holds the active `language` (Java / C++ / Python). The right rail
+  (`OopsNotesPanel`) shows narrated steps **plus real source code** via
+  `components/visualizer/CodePanel.tsx` (Shiki, `lib/shiki.ts`). Frames carry a
+  language-agnostic `anchor` string instead of raw line numbers; each code
+  sample in `data/oops/code/*` maps anchors → its own line numbers, so switching
+  language keeps the highlighted lines semantically correct. Add a concept by
+  writing an engine op, a code entry, a theory doc, a curriculum leaf, and a
+  one-line page rendering `<OopsVisualizerScreen operation=… />`.
+
+- **UML diagram viewer.** `components/uml/*` renders `data/umlDiagrams.ts` presets
+  with **reactflow** (custom class/actor/use-case/boundary nodes and one
+  `UmlEdge` that draws all eight relationship kinds via manual SVG markers).
+  `lib/umlStore.ts` steps through each diagram's `buildSteps`. Leaves render
+  `<UmlScreen presetIds=… defaultPreset=… />`.
+
+Theory keys for OOP use the `oo:` prefix — see the `theoryKey()` branch in
+`data/theory.ts`.
 
 ---
 
